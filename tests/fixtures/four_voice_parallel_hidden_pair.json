@@ -1,0 +1,58 @@
+{
+  "id": "fixture-8",
+  "title": "Four Voice Parallel Hidden Pair",
+  "tonicPitchClass": 0,
+  "mode": "ionian",
+  "ticksPerWhole": 480,
+  "tempoBpm": 96,
+  "voices": [
+    {
+      "id": "cf",
+      "name": "CF",
+      "role": "cantus",
+      "rangeMinMidi": 48,
+      "rangeMaxMidi": 60,
+      "notes": [
+        { "id": "cf0", "midi": 60, "startTick": 0, "durationTicks": 480 },
+        { "id": "cf1", "midi": 62, "startTick": 480, "durationTicks": 480 }
+      ]
+    },
+    {
+      "id": "cp1",
+      "name": "Soprano",
+      "role": "counterpoint",
+      "species": "first",
+      "rangeMinMidi": 60,
+      "rangeMaxMidi": 77,
+      "notes": [
+        { "id": "a0", "midi": 67, "startTick": 0, "durationTicks": 480 },
+        { "id": "a1", "midi": 74, "startTick": 480, "durationTicks": 480 }
+      ]
+    },
+    {
+      "id": "cp2",
+      "name": "Alto",
+      "role": "counterpoint",
+      "species": "first",
+      "rangeMinMidi": 55,
+      "rangeMaxMidi": 72,
+      "notes": [
+        { "id": "l0", "midi": 64, "startTick": 0, "durationTicks": 480 },
+        { "id": "l1", "midi": 71, "startTick": 480, "durationTicks": 480 }
+      ]
+    },
+    {
+      "id": "cp3",
+      "name": "Bass",
+      "role": "counterpoint",
+      "species": "first",
+      "rangeMinMidi": 36,
+      "rangeMaxMidi": 55,
+      "position": "below",
+      "notes": [
+        { "id": "b0", "midi": 48, "startTick": 0, "durationTicks": 480 },
+        { "id": "b1", "midi": 55, "startTick": 480, "durationTicks": 480 }
+      ]
+    }
+  ]
+}

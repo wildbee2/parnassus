@@ -1,0 +1,33 @@
+{
+  "id": "fixture-6",
+  "title": "Fourth Species Bad Unresolved",
+  "tonicPitchClass": 4,
+  "mode": "phrygian",
+  "ticksPerWhole": 480,
+  "tempoBpm": 96,
+  "voices": [
+    {
+      "id": "cf",
+      "name": "CF",
+      "role": "cantus",
+      "rangeMinMidi": 48,
+      "rangeMaxMidi": 64,
+      "notes": [
+        { "id": "cf0", "midi": 64, "startTick": 0, "durationTicks": 480 },
+        { "id": "cf1", "midi": 62, "startTick": 480, "durationTicks": 480 }
+      ]
+    },
+    {
+      "id": "cp",
+      "name": "CP",
+      "role": "counterpoint",
+      "species": "fourth",
+      "rangeMinMidi": 55,
+      "rangeMaxMidi": 76,
+      "notes": [
+        { "id": "cp0", "midi": 67, "startTick": 0, "durationTicks": 480, "tiedToNext": true },
+        { "id": "cp1", "midi": 69, "startTick": 480, "durationTicks": 480, "tiedFromPrevious": true, "tiedToNext": true }
+      ]
+    }
+  ]
+}
