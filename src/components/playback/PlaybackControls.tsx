@@ -7,15 +7,27 @@ export function PlaybackControls({ score }: { score: CounterpointScore }) {
   const [playing, setPlaying] = useState(false);
   const [tempo, setTempo] = useState(score.tempoBpm);
   const synthRef = useRef<Tone.PolySynth | null>(null);
+  const stopTimerRef = useRef<number | null>(null);
+
+  function clearPlaybackState() {
+    if (stopTimerRef.current !== null) {
+      window.clearTimeout(stopTimerRef.current);
+      stopTimerRef.current = null;
+    }
+    Tone.Transport.pause();
+    Tone.Transport.cancel();
+    setPlaying(false);
+  }
 
   async function play() {
     await Tone.start();
-    Tone.Transport.cancel();
+    clearPlaybackState();
     Tone.Transport.bpm.value = tempo;
     if (!synthRef.current) {
       synthRef.current = new Tone.PolySynth().toDestination();
     }
     const synth = synthRef.current;
+    const durationSeconds = Math.max(...score.voices.flatMap((voice) => voice.notes.map((note) => note.startTick + note.durationTicks)), score.ticksPerWhole) / score.ticksPerWhole * (60 / tempo) + 0.25;
     for (const voice of score.voices) {
       for (const note of voice.notes) {
         Tone.Transport.schedule((time: number) => {
@@ -23,13 +35,15 @@ export function PlaybackControls({ score }: { score: CounterpointScore }) {
         }, note.startTick / score.ticksPerWhole * 2);
       }
     }
+    stopTimerRef.current = window.setTimeout(() => {
+      clearPlaybackState();
+    }, Math.max(250, durationSeconds * 1000));
     Tone.Transport.start();
     setPlaying(true);
   }
 
   function pause() {
-    Tone.Transport.pause();
-    setPlaying(false);
+    clearPlaybackState();
   }
 
   return (
