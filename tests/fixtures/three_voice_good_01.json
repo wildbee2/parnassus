@@ -1,0 +1,46 @@
+{
+  "id": "fixture-7",
+  "title": "Three Voice Good 01",
+  "tonicPitchClass": 2,
+  "mode": "dorian",
+  "ticksPerWhole": 480,
+  "tempoBpm": 96,
+  "voices": [
+    {
+      "id": "cf",
+      "name": "CF",
+      "role": "cantus",
+      "rangeMinMidi": 48,
+      "rangeMaxMidi": 62,
+      "notes": [
+        { "id": "cf0", "midi": 50, "startTick": 0, "durationTicks": 480 },
+        { "id": "cf1", "midi": 52, "startTick": 480, "durationTicks": 480 }
+      ]
+    },
+    {
+      "id": "cp1",
+      "name": "Soprano",
+      "role": "counterpoint",
+      "species": "first",
+      "rangeMinMidi": 60,
+      "rangeMaxMidi": 77,
+      "notes": [
+        { "id": "a0", "midi": 69, "startTick": 0, "durationTicks": 480 },
+        { "id": "a1", "midi": 71, "startTick": 480, "durationTicks": 480 }
+      ]
+    },
+    {
+      "id": "cp2",
+      "name": "Bass",
+      "role": "counterpoint",
+      "species": "first",
+      "rangeMinMidi": 38,
+      "rangeMaxMidi": 55,
+      "position": "below",
+      "notes": [
+        { "id": "b0", "midi": 50, "startTick": 0, "durationTicks": 480 },
+        { "id": "b1", "midi": 48, "startTick": 480, "durationTicks": 480 }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "id": "fixture-2",
+  "title": "First Species Parallel Fifth",
+  "tonicPitchClass": 2,
+  "mode": "dorian",
+  "ticksPerWhole": 480,
+  "tempoBpm": 96,
+  "voices": [
+    {
+      "id": "cf",
+      "name": "CF",
+      "role": "cantus",
+      "rangeMinMidi": 48,
+      "rangeMaxMidi": 67,
+      "notes": [
+        { "id": "cf0", "midi": 50, "startTick": 0, "durationTicks": 480 },
+        { "id": "cf1", "midi": 52, "startTick": 480, "durationTicks": 480 }
+      ]
+    },
+    {
+      "id": "cp",
+      "name": "CP",
+      "role": "counterpoint",
+      "species": "first",
+      "rangeMinMidi": 55,
+      "rangeMaxMidi": 76,
+      "notes": [
+        { "id": "cp0", "midi": 57, "startTick": 0, "durationTicks": 480 },
+        { "id": "cp1", "midi": 59, "startTick": 480, "durationTicks": 480 }
+      ]
+    }
+  ]
+}
