@@ -5,8 +5,6 @@ import { PlaybackControls } from '../components/playback/PlaybackControls';
 import { InspectorPanel } from '../components/inspector/InspectorPanel';
 import { Badge, Button, Card, CardBody, CardHeader, Input, Label, Select } from '../components/ui';
 import { useAppStore } from '../store/useAppStore';
-import { exportScoreJson } from '../importExport/json';
-import { generateCounterpointScore } from '../generator';
 import { evaluateCounterpoint } from '../counterpoint/evaluator';
 import type { CounterpointScore, Species } from '../counterpoint/model';
 import { canonicalExamples } from '../examples/builtInExamples';
@@ -14,8 +12,8 @@ import { canonicalExamples } from '../examples/builtInExamples';
 const SPECIES: Species[] = ['first', 'second', 'third', 'fourth', 'fifth'];
 
 export function GeneratePage() {
-  const { score, setScore, updateScore, evaluate, updateNote, setTempo, setTitle, generate: generateScore } = useAppStore();
-  const [alternatives, setAlternatives] = useState<CounterpointScore[]>([]);
+  const { score, updateScore, updateVoice, evaluate, updateNote, setTempo, setTitle, generate: generateScore, loadExample } = useAppStore();
+  const [selectedExampleId, setSelectedExampleId] = useState('');
 
   const generationSummary = useMemo(() => evaluateCounterpoint(score), [score]);
 
@@ -42,32 +40,12 @@ export function GeneratePage() {
 
   function generate() {
     generateScore();
-    setAlternatives([]);
-  }
-
-  function generateAlternatives() {
-    const base = structuredClone(score);
-    const seed = base.seed ?? 17;
-    const strictness = useAppStore.getState().settings.strictnessProfile;
-    const variants = Array.from({ length: 5 }, (_, index) =>
-      generateCounterpointScore({
-        score: structuredClone(base),
-        options: {
-          beamWidth: 40,
-          maxBacktracks: 80,
-          seed: seed + index * 7919,
-          strictness
-        }
-      }).score
-    );
-    setAlternatives(variants);
+    setSelectedExampleId('');
   }
 
   return (
     <AppShell
       title="Generate"
-      onExportJson={() => navigator.clipboard.writeText(exportScoreJson(score))}
-      onClear={() => useAppStore.getState().clearScore()}
       inspector={<InspectorPanel score={score} onApplyFix={(noteId, newMidi) => {
         const voice = score.voices.find((candidate) => candidate.notes.some((note) => note.id === noteId));
         if (voice) updateNote(voice.id, noteId, { midi: newMidi });
@@ -92,6 +70,27 @@ export function GeneratePage() {
                 <option value={2}>2</option>
                 <option value={3}>3</option>
                 <option value={4}>4</option>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Example</Label>
+              <Select
+                value={selectedExampleId}
+                onChange={(event) => {
+                  const example = canonicalExamples.find((candidate) => candidate.id === event.target.value);
+                  setSelectedExampleId(event.target.value);
+                  if (example) {
+                    loadExample(example);
+                    evaluate();
+                  }
+                }}
+              >
+                <option value="">Load verified example</option>
+                {canonicalExamples.map((example) => (
+                  <option key={example.id} value={example.id}>
+                    {example.title}
+                  </option>
+                ))}
               </Select>
             </div>
             <div className="space-y-2">
@@ -136,42 +135,36 @@ export function GeneratePage() {
               <Label>Tempo</Label>
               <Input type="number" value={score.tempoBpm} onChange={(event) => setTempo(Number(event.target.value))} />
             </div>
+            {score.voices
+              .filter((voice) => voice.role !== 'cantus')
+              .map((voice) => (
+                <div key={voice.id} className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label>{voice.name} species</Label>
+                    <Badge tone="neutral">{voice.position ?? 'auto'}</Badge>
+                  </div>
+                  <Select
+                    value={voice.species ?? 'first'}
+                    onChange={(event) => {
+                      updateVoice(voice.id, { species: event.target.value as Species });
+                      evaluate();
+                    }}
+                  >
+                    <option value="first">First species</option>
+                    <option value="second">Second species</option>
+                    <option value="third">Third species</option>
+                    <option value="fourth">Fourth species</option>
+                    <option value="fifth">Fifth species</option>
+                  </Select>
+                </div>
+              ))}
           </CardBody>
         </Card>
 
         <div className="flex flex-wrap gap-2">
           <Button onClick={generate}>Generate</Button>
-          <Button variant="secondary" onClick={generateAlternatives}>Generate 5 Alternatives</Button>
           <Button variant="secondary" onClick={() => evaluate()}>Evaluate</Button>
         </div>
-
-        {alternatives.length ? (
-          <Card>
-            <CardHeader>
-              <div className="text-sm font-semibold">Alternative Candidates</div>
-            </CardHeader>
-            <CardBody className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {alternatives.map((candidate, index) => {
-                const result = evaluateCounterpoint(candidate);
-                return (
-                  <button
-                    key={candidate.id}
-                    onClick={() => {
-                      setScore(candidate);
-                      evaluate();
-                      setAlternatives([]);
-                    }}
-                    className="rounded-xl border border-slate-200 bg-white p-3 text-left text-sm hover:bg-slate-50"
-                  >
-                    <div className="font-semibold">Alternative {index + 1}</div>
-                    <div className="text-slate-600">{candidate.title}</div>
-                    <div className="mt-2 text-xs text-slate-500">Score {result.score} · Violations {result.violations.length}</div>
-                  </button>
-                );
-              })}
-            </CardBody>
-          </Card>
-        ) : null}
 
         <ScoreGrid
           score={score}
@@ -198,13 +191,6 @@ export function GeneratePage() {
               <div className="text-sm">Violations: {generationSummary.violations.length}</div>
               <div className="text-xs text-slate-500">{generationSummary.cadenceAnalysis.explanation}</div>
             </div>
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader><div className="text-sm font-semibold">Verified Examples</div></CardHeader>
-          <CardBody className="text-sm text-slate-600">
-            The default example library only includes scores verified to evaluate with zero violations. Study examples remain available in the Examples page, but they are not loaded automatically.
           </CardBody>
         </Card>
       </div>

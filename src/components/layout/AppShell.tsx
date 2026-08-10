@@ -1,14 +1,14 @@
 import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useRef } from 'react';
 import { Badge, Button, Card } from '../ui';
 import { useAppStore } from '../../store/useAppStore';
-import { ArrowLeftRight, FileDown, FileUp, Plus, Play, Redo2, Undo2, Zap, Volume2, Trash2 } from 'lucide-react';
+import { ArrowLeftRight, FileDown, FileUp, Zap } from 'lucide-react';
+import { exportScoreJson, importScoreJson } from '../../importExport/json';
 
 const navItems = [
-  { to: '/', label: 'New Exercise' },
   { to: '/generate', label: 'Generate' },
   { to: '/evaluate', label: 'Evaluate' },
-  { to: '/examples', label: 'Examples' },
   { to: '/rules', label: 'Rule Reference' },
   { to: '/settings', label: 'Settings' }
 ];
@@ -17,23 +17,53 @@ export function AppShell({
   title,
   inspector,
   children,
-  onPlay,
-  onPause,
   onExportJson,
-  onImportJson,
-  onClear
+  onImportJson
 }: {
   title: string;
   inspector?: ReactNode;
   children: ReactNode;
-  onPlay?: () => void;
-  onPause?: () => void;
   onExportJson?: () => void;
   onImportJson?: () => void;
-  onClear?: () => void;
 }) {
   const location = useLocation();
-  const { undo, redo, score } = useAppStore();
+  const { score } = useAppStore();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function downloadJson() {
+    if (onExportJson) {
+      onExportJson();
+      return;
+    }
+    const blob = new Blob([exportScoreJson(score)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${score.title || 'counterpoint-score'}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function importJson(file: File) {
+    try {
+      const raw = await file.text();
+      const parsed = importScoreJson(raw);
+      const store = useAppStore.getState();
+      store.setScore(parsed);
+      store.evaluate();
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Unable to import JSON');
+    }
+  }
+
+  function openImportDialog() {
+    if (onImportJson) {
+      onImportJson();
+      return;
+    }
+    fileInputRef.current?.click();
+  }
+
   return (
     <div className="min-h-full">
       <div className="flex min-h-full flex-col lg:flex-row">
@@ -66,14 +96,19 @@ export function AppShell({
         <div className="flex min-h-0 flex-1 flex-col">
           <header className="border-b border-slate-200 bg-white/70 px-4 py-3 backdrop-blur">
             <div className="flex flex-wrap items-center gap-2">
-              <Button onClick={() => useAppStore.getState().clearScore()} variant="secondary"><Plus size={16} />New</Button>
-              <Button onClick={() => undo()} variant="secondary"><Undo2 size={16} />Undo</Button>
-              <Button onClick={() => redo()} variant="secondary"><Redo2 size={16} />Redo</Button>
-              <Button onClick={onPlay} variant="secondary"><Play size={16} />Play</Button>
-              <Button onClick={onPause} variant="secondary"><Volume2 size={16} />Pause</Button>
-              <Button onClick={onImportJson} variant="secondary"><FileUp size={16} />Import JSON</Button>
-              <Button onClick={onExportJson} variant="secondary"><FileDown size={16} />Export JSON</Button>
-              <Button onClick={onClear} variant="danger"><Trash2 size={16} />Clear</Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={async (event) => {
+                  const file = event.target.files?.[0];
+                  event.currentTarget.value = '';
+                  if (file) await importJson(file);
+                }}
+              />
+              <Button onClick={openImportDialog} variant="secondary"><FileUp size={16} />Import JSON</Button>
+              <Button onClick={downloadJson} variant="secondary"><FileDown size={16} />Export JSON</Button>
               <div className="ml-auto flex items-center gap-2 text-xs text-slate-600">
                 <ArrowLeftRight size={14} />
                 <span>{score.voices.length} voices</span>
@@ -91,4 +126,3 @@ export function AppShell({
     </div>
   );
 }
-

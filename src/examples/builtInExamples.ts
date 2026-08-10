@@ -175,6 +175,106 @@ export const canonicalExamples: CounterpointScore[] = [
     ],
     species: 'fifth'
   }),
+  makeTwoVoiceExample({
+    title: 'Two Voices - Grand Piano Second Species',
+    mode: 'ionian',
+    tonicPitchClass: 0,
+    cfRange: { min: 48, max: 50 },
+    cpRange: { min: 55, max: 62 },
+    cfNotes: [48, 50],
+    cpNotes: [
+      { midi: 55, durationTicks: 240 },
+      { midi: 60, durationTicks: 240 },
+      { midi: 57, durationTicks: 240 },
+      { midi: 62, durationTicks: 240 }
+    ],
+    species: 'second'
+  }),
+  makeTwoVoiceExample({
+    title: 'Two Voices - Organ Third Species',
+    mode: 'dorian',
+    tonicPitchClass: 2,
+    cfRange: { min: 48, max: 50 },
+    cpRange: { min: 55, max: 62 },
+    cfNotes: [48, 50],
+    cpNotes: [
+      { midi: 55, durationTicks: 120 },
+      { midi: 60, durationTicks: 120 },
+      { midi: 55, durationTicks: 120 },
+      { midi: 60, durationTicks: 120 },
+      { midi: 57, durationTicks: 120 },
+      { midi: 62, durationTicks: 120 },
+      { midi: 57, durationTicks: 120 },
+      { midi: 62, durationTicks: 120 }
+    ],
+    species: 'third'
+  }),
+  makeTextureExample({
+    title: 'Three Voices - Trumpet Trio Second Species',
+    mode: 'ionian',
+    tonicPitchClass: 0,
+    voices: [
+      {
+        id: 'cf',
+        name: 'Cantus Firmus',
+        role: 'cantus',
+        rangeMinMidi: 46,
+        rangeMaxMidi: 50,
+        notes: [48, 50, 48, 50]
+      },
+      {
+        id: 'middle',
+        name: 'Middle Voice',
+        role: 'counterpoint',
+        species: 'second',
+        rangeMinMidi: 58,
+        rangeMaxMidi: 62,
+        notes: [60, 59, 60, 59]
+      },
+      {
+        id: 'high',
+        name: 'High Voice',
+        role: 'counterpoint',
+        species: 'first',
+        rangeMinMidi: 68,
+        rangeMaxMidi: 72,
+        notes: [69, 71, 69, 71]
+      }
+    ]
+  }),
+  makeTextureExample({
+    title: 'Three Voices - Violin Trio Third Species',
+    mode: 'dorian',
+    tonicPitchClass: 2,
+    voices: [
+      {
+        id: 'cf',
+        name: 'Cantus Firmus',
+        role: 'cantus',
+        rangeMinMidi: 46,
+        rangeMaxMidi: 50,
+        notes: [48, 50, 48, 50]
+      },
+      {
+        id: 'middle',
+        name: 'Middle Voice',
+        role: 'counterpoint',
+        species: 'third',
+        rangeMinMidi: 58,
+        rangeMaxMidi: 62,
+        notes: [60, 59, 60, 59]
+      },
+      {
+        id: 'high',
+        name: 'High Voice',
+        role: 'counterpoint',
+        species: 'first',
+        rangeMinMidi: 68,
+        rangeMaxMidi: 72,
+        notes: [69, 71, 69, 71]
+      }
+    ]
+  }),
   makeTextureExample({
     title: 'Three Voices - Bach Sinfonia Inspired',
     mode: 'ionian',

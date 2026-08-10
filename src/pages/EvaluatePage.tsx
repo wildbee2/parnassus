@@ -6,8 +6,7 @@ import { InspectorPanel } from '../components/inspector/InspectorPanel';
 import { Button, Card, CardBody, CardHeader, Textarea } from '../components/ui';
 import { useAppStore } from '../store/useAppStore';
 import { parseScoreText } from '../counterpoint/parser';
-import { exportScoreJson } from '../importExport/json';
-import { canonicalExamples, studyExamples } from '../examples/builtInExamples';
+import { studyExamples } from '../examples/builtInExamples';
 import { evaluateCounterpoint } from '../counterpoint/evaluator';
 
 export function EvaluatePage() {
@@ -24,8 +23,6 @@ export function EvaluatePage() {
   return (
     <AppShell
       title="Evaluate"
-      onExportJson={() => navigator.clipboard.writeText(exportScoreJson(score))}
-      onClear={() => useAppStore.getState().clearScore()}
       inspector={<InspectorPanel score={score} onApplyFix={(noteId, newMidi) => {
         const voice = score.voices.find((candidate) => candidate.notes.some((note) => note.id === noteId));
         if (voice) updateNote(voice.id, noteId, { midi: newMidi });
@@ -39,8 +36,6 @@ export function EvaluatePage() {
             <Textarea value={text} onChange={(event) => setText(event.target.value)} rows={6} className="font-mono text-sm" />
             <div className="flex gap-2">
               <Button onClick={importText}>Parse and Evaluate</Button>
-              <Button variant="secondary" onClick={() => loadExample(canonicalExamples[0])}>Load Verified Example</Button>
-              <Button variant="secondary" onClick={() => loadExample(canonicalExamples[1])}>Load Another Verified Example</Button>
             </div>
           </CardBody>
         </Card>

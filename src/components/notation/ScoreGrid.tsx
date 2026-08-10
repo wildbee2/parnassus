@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { CounterpointScore, NoteEvent, Voice } from '../../counterpoint/model';
 import { midiToNoteName } from '../../music/pitch';
-import { Badge, Button, Card, CardBody, CardHeader, Input, Label, Select } from '../ui';
+import { Badge, Card, CardBody, CardHeader } from '../ui';
 
 function ticksToColumns(score: CounterpointScore): number {
   const maxTick = Math.max(...score.voices.flatMap((voice) => voice.notes.map((note) => note.startTick + note.durationTicks)), score.ticksPerWhole * 8);
@@ -47,17 +47,7 @@ export function ScoreGrid({
             <div key={voice.id} className="grid border-b border-slate-100" style={{ gridTemplateColumns: `220px repeat(${columns}, minmax(44px, 1fr))` }}>
               <div className="border-r border-slate-200 bg-white px-3 py-3">
                 <div className="text-sm font-semibold">{voice.name}</div>
-                <div className="text-xs text-slate-500">{voice.species ?? 'cantus'} · {midiToNoteName(voice.rangeMinMidi)} - {midiToNoteName(voice.rangeMaxMidi)}</div>
-                <div className="mt-3 space-y-2">
-                  <Label>Species</Label>
-                  <Select value={voice.species ?? 'first'} onChange={(event) => onUpdateNote(voice.id, voice.notes[0]?.id ?? '', { })} disabled={voice.role === 'cantus'}>
-                    <option value="first">First</option>
-                    <option value="second">Second</option>
-                    <option value="third">Third</option>
-                    <option value="fourth">Fourth</option>
-                    <option value="fifth">Fifth</option>
-                  </Select>
-                </div>
+                <div className="text-xs text-slate-500">{voice.role === 'cantus' ? 'Cantus firmus' : `${voice.species ?? 'first'} species`} · {midiToNoteName(voice.rangeMinMidi)} - {midiToNoteName(voice.rangeMaxMidi)}</div>
               </div>
               {Array.from({ length: columns }, (_, colIndex) => {
                 const tick = colIndex * (score.ticksPerWhole / 2);
@@ -87,4 +77,3 @@ export function ScoreGrid({
     </Card>
   );
 }
-

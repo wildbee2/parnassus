@@ -7,5 +7,12 @@ describe('canonical examples', () => {
     const result = evaluateCounterpoint(example);
     expect(result.violations).toHaveLength(0);
   });
-});
 
+  test('includes non-first-species three-voice examples', () => {
+    const examples = canonicalExamples.filter((example) => (
+      example.voices.length === 3
+      && example.voices.some((voice) => voice.role === 'counterpoint' && voice.species && voice.species !== 'first')
+    ));
+    expect(examples.length).toBeGreaterThanOrEqual(2);
+  });
+});

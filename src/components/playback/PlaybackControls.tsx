@@ -1,9 +1,9 @@
 import * as Tone from 'tone';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CounterpointScore } from '../../counterpoint/model';
 import { Button, Card, CardBody, CardHeader, Input, Label } from '../ui';
 
-type InstrumentPreset = 'piano' | 'harpsichord' | 'flute';
+type InstrumentPreset = 'grand_piano' | 'organ' | 'trumpet' | 'violin' | 'harpsichord' | 'flute';
 
 function createInstrument(preset: InstrumentPreset): Tone.PolySynth {
   const synth = new Tone.PolySynth().toDestination();
@@ -20,6 +20,21 @@ function createInstrument(preset: InstrumentPreset): Tone.PolySynth {
       oscillator: { type: 'sine' },
       envelope: { attack: 0.08, decay: 0.12, sustain: 0.55, release: 0.45 }
     });
+  } else if (preset === 'organ') {
+    voice.set?.({
+      oscillator: { type: 'square' },
+      envelope: { attack: 0.01, decay: 0.12, sustain: 0.75, release: 0.35 }
+    });
+  } else if (preset === 'trumpet') {
+    voice.set?.({
+      oscillator: { type: 'sawtooth' },
+      envelope: { attack: 0.03, decay: 0.16, sustain: 0.45, release: 0.2 }
+    });
+  } else if (preset === 'violin') {
+    voice.set?.({
+      oscillator: { type: 'sawtooth4' },
+      envelope: { attack: 0.05, decay: 0.14, sustain: 0.58, release: 0.35 }
+    });
   } else {
     voice.set?.({
       oscillator: { type: 'triangle' },
@@ -32,7 +47,7 @@ function createInstrument(preset: InstrumentPreset): Tone.PolySynth {
 export function PlaybackControls({ score }: { score: CounterpointScore }) {
   const [playing, setPlaying] = useState(false);
   const [tempo, setTempo] = useState(score.tempoBpm);
-  const [instrument, setInstrument] = useState<InstrumentPreset>('piano');
+  const [instrument, setInstrument] = useState<InstrumentPreset>('grand_piano');
   const synthRef = useRef<Tone.PolySynth | null>(null);
   const timerRefs = useRef<number[]>([]);
   const stopTimerRef = useRef<number | null>(null);
@@ -109,7 +124,10 @@ export function PlaybackControls({ score }: { score: CounterpointScore }) {
             }}
             className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
           >
-            <option value="piano">Piano-like</option>
+            <option value="grand_piano">Grand piano</option>
+            <option value="organ">Organ</option>
+            <option value="trumpet">Trumpet</option>
+            <option value="violin">Violin</option>
             <option value="harpsichord">Harpsichord-like</option>
             <option value="flute">Flute-like</option>
           </select>
