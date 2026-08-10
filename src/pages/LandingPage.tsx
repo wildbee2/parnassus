@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { builtInExamples } from '../examples/builtInExamples';
+import { canonicalExamples } from '../examples/builtInExamples';
 import { AppShell } from '../components/layout/AppShell';
 import { Card, CardBody, CardHeader, Button, Badge } from '../components/ui';
 import { useAppStore } from '../store/useAppStore';
@@ -32,7 +32,7 @@ export function LandingPage() {
             <CardHeader><div className="text-sm font-semibold">Recent Exercises</div></CardHeader>
             <CardBody className="space-y-2">
               {recentExercises.length ? recentExercises.map((exercise) => (
-                <button key={exercise.id} className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-left text-sm hover:bg-slate-50" onClick={() => loadExample(builtInExamples[0])}>
+                <button key={exercise.id} className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-left text-sm hover:bg-slate-50" onClick={() => loadExample(canonicalExamples[0])}>
                   {exercise.title}
                 </button>
               )) : <div className="text-sm text-slate-500">No recent exercises yet.</div>}
@@ -42,7 +42,7 @@ export function LandingPage() {
           <Card>
             <CardHeader><div className="text-sm font-semibold">Quick Start</div></CardHeader>
             <CardBody className="space-y-2">
-              {builtInExamples.slice(0, 4).map((example) => (
+              {canonicalExamples.slice(0, 4).map((example) => (
                 <button key={example.id} onClick={() => loadExample(example)} className="flex w-full items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-left text-sm hover:bg-slate-50">
                   <span>{example.title}</span>
                   <Badge tone="info">{example.voices.length} voices</Badge>
@@ -55,4 +55,3 @@ export function LandingPage() {
     </AppShell>
   );
 }
-

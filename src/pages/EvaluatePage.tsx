@@ -7,7 +7,7 @@ import { Button, Card, CardBody, CardHeader, Textarea } from '../components/ui';
 import { useAppStore } from '../store/useAppStore';
 import { parseScoreText } from '../counterpoint/parser';
 import { exportScoreJson } from '../importExport/json';
-import { builtInExamples } from '../examples/builtInExamples';
+import { canonicalExamples, studyExamples } from '../examples/builtInExamples';
 import { evaluateCounterpoint } from '../counterpoint/evaluator';
 
 export function EvaluatePage() {
@@ -39,8 +39,8 @@ export function EvaluatePage() {
             <Textarea value={text} onChange={(event) => setText(event.target.value)} rows={6} className="font-mono text-sm" />
             <div className="flex gap-2">
               <Button onClick={importText}>Parse and Evaluate</Button>
-              <Button variant="secondary" onClick={() => loadExample(builtInExamples[0])}>Load Example</Button>
-              <Button variant="secondary" onClick={() => loadExample(builtInExamples[1])}>Load Bad Example</Button>
+              <Button variant="secondary" onClick={() => loadExample(canonicalExamples[0])}>Load Verified Example</Button>
+              <Button variant="secondary" onClick={() => loadExample(canonicalExamples[1])}>Load Another Verified Example</Button>
             </div>
           </CardBody>
         </Card>
@@ -68,8 +68,19 @@ export function EvaluatePage() {
             ))}
           </CardBody>
         </Card>
+
+        <Card>
+          <CardHeader><div className="text-sm font-semibold">Study Examples</div></CardHeader>
+          <CardBody className="space-y-2">
+            <div className="text-sm text-slate-600">These examples are intentionally flawed and are not loaded by default.</div>
+            <div className="flex flex-wrap gap-2">
+              {studyExamples.map((example) => (
+                <Button key={example.id} variant="secondary" onClick={() => loadExample(example)}>{example.title}</Button>
+              ))}
+            </div>
+          </CardBody>
+        </Card>
       </div>
     </AppShell>
   );
 }
-

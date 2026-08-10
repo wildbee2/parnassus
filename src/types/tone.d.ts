@@ -12,6 +12,7 @@ declare module 'tone' {
     toDestination(): PolySynth;
     triggerAttackRelease(note: string, duration: number, time?: number, velocity?: number): void;
     releaseAll(): void;
+    dispose(): void;
   }
   export const Frequency: (value: number, unit: string) => { toNote(): string };
 }

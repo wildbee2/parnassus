@@ -268,7 +268,7 @@ function pairwiseMotionViolations(score: CounterpointScore): RuleViolation[] {
       }
     }
   }
-  if (motionCounts.parallel > motionCounts.contrary + motionCounts.oblique) {
+  if (score.voices.length > 2 && motionCounts.parallel > motionCounts.contrary + motionCounts.oblique) {
     out.push(ruleViolation('TEX_EXCESSIVE_PARALLEL_MOTION', 'texture', 'The texture relies heavily on parallel motion.', 'A strong species exercise normally retains more contrary and oblique motion.', score.voices.map((v) => v.id), 0));
   }
   return out;

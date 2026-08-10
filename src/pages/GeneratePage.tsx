@@ -4,26 +4,22 @@ import { ScoreGrid } from '../components/notation/ScoreGrid';
 import { PlaybackControls } from '../components/playback/PlaybackControls';
 import { InspectorPanel } from '../components/inspector/InspectorPanel';
 import { Badge, Button, Card, CardBody, CardHeader, Input, Label, Select } from '../components/ui';
-import { useAppStore, defaultScore } from '../store/useAppStore';
+import { useAppStore } from '../store/useAppStore';
 import { exportScoreJson } from '../importExport/json';
 import { generateCounterpointScore } from '../generator';
 import { evaluateCounterpoint } from '../counterpoint/evaluator';
-import type { Species } from '../counterpoint/model';
-import { modeNameLabel } from '../music/mode';
+import type { CounterpointScore, Species } from '../counterpoint/model';
+import { canonicalExamples } from '../examples/builtInExamples';
 
 const SPECIES: Species[] = ['first', 'second', 'third', 'fourth', 'fifth'];
 
 export function GeneratePage() {
-  const { score, setScore, updateScore, evaluate, updateNote, updateVoice, setTempo, setTitle } = useAppStore();
-  const [voiceCount, setVoiceCount] = useState(score.voices.length);
-  const [seed, setSeed] = useState(score.seed ?? 17);
-  const [mode, setMode] = useState(score.mode);
-  const [tonicPitchClass, setTonicPitchClass] = useState(score.tonicPitchClass);
+  const { score, setScore, updateScore, evaluate, updateNote, setTempo, setTitle, generate: generateScore } = useAppStore();
+  const [alternatives, setAlternatives] = useState<CounterpointScore[]>([]);
 
   const generationSummary = useMemo(() => evaluateCounterpoint(score), [score]);
 
   function resizeVoices(count: number) {
-    setVoiceCount(count);
     updateScore((current) => {
       const cf = current.voices.find((voice) => voice.role === 'cantus') ?? current.voices[0];
       const cpVoices = current.voices.filter((voice) => voice.role !== 'cantus');
@@ -45,11 +41,26 @@ export function GeneratePage() {
   }
 
   function generate() {
-    updateScore((current) => generateCounterpointScore({
-      score: { ...current, mode, tonicPitchClass, seed },
-      options: { beamWidth: 40, maxBacktracks: 80, seed, strictness: useAppStore.getState().settings.strictnessProfile }
-    }).score);
-    evaluate();
+    generateScore();
+    setAlternatives([]);
+  }
+
+  function generateAlternatives() {
+    const base = structuredClone(score);
+    const seed = base.seed ?? 17;
+    const strictness = useAppStore.getState().settings.strictnessProfile;
+    const variants = Array.from({ length: 5 }, (_, index) =>
+      generateCounterpointScore({
+        score: structuredClone(base),
+        options: {
+          beamWidth: 40,
+          maxBacktracks: 80,
+          seed: seed + index * 7919,
+          strictness
+        }
+      }).score
+    );
+    setAlternatives(variants);
   }
 
   return (
@@ -71,13 +82,13 @@ export function GeneratePage() {
                 <div className="text-sm font-semibold">Generation Setup</div>
                 <div className="text-xs text-slate-500">Fux-inspired strict species counterpoint</div>
               </div>
-              <Badge tone="info">{modeNameLabel(score.mode)}</Badge>
+              <Badge tone="info">{score.mode}</Badge>
             </div>
           </CardHeader>
           <CardBody className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
             <div className="space-y-2">
               <Label>Number of voices</Label>
-              <Select value={voiceCount} onChange={(event) => resizeVoices(Number(event.target.value))}>
+              <Select value={score.voices.length} onChange={(event) => resizeVoices(Number(event.target.value))}>
                 <option value={2}>2</option>
                 <option value={3}>3</option>
                 <option value={4}>4</option>
@@ -85,7 +96,10 @@ export function GeneratePage() {
             </div>
             <div className="space-y-2">
               <Label>Mode</Label>
-              <Select value={mode} onChange={(event) => setMode(event.target.value as typeof mode)}>
+              <Select
+                value={score.mode}
+                onChange={(event) => updateScore((current) => ({ ...current, mode: event.target.value as CounterpointScore['mode'] }))}
+              >
                 <option value="ionian">Ionian</option>
                 <option value="dorian">Dorian</option>
                 <option value="phrygian">Phrygian</option>
@@ -98,11 +112,21 @@ export function GeneratePage() {
             </div>
             <div className="space-y-2">
               <Label>Final pitch class</Label>
-              <Input type="number" min={0} max={11} value={tonicPitchClass} onChange={(event) => setTonicPitchClass(Number(event.target.value))} />
+              <Input
+                type="number"
+                min={0}
+                max={11}
+                value={score.tonicPitchClass}
+                onChange={(event) => updateScore((current) => ({ ...current, tonicPitchClass: Number(event.target.value) }))}
+              />
             </div>
             <div className="space-y-2">
               <Label>Seed</Label>
-              <Input type="number" value={seed} onChange={(event) => setSeed(Number(event.target.value))} />
+              <Input
+                type="number"
+                value={score.seed ?? 17}
+                onChange={(event) => updateScore((current) => ({ ...current, seed: Number(event.target.value) }))}
+              />
             </div>
             <div className="space-y-2">
               <Label>Title</Label>
@@ -117,9 +141,37 @@ export function GeneratePage() {
 
         <div className="flex flex-wrap gap-2">
           <Button onClick={generate}>Generate</Button>
-          <Button variant="secondary" onClick={() => resizeVoices(4)}>Generate 5 Alternatives</Button>
+          <Button variant="secondary" onClick={generateAlternatives}>Generate 5 Alternatives</Button>
           <Button variant="secondary" onClick={() => evaluate()}>Evaluate</Button>
         </div>
+
+        {alternatives.length ? (
+          <Card>
+            <CardHeader>
+              <div className="text-sm font-semibold">Alternative Candidates</div>
+            </CardHeader>
+            <CardBody className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {alternatives.map((candidate, index) => {
+                const result = evaluateCounterpoint(candidate);
+                return (
+                  <button
+                    key={candidate.id}
+                    onClick={() => {
+                      setScore(candidate);
+                      evaluate();
+                      setAlternatives([]);
+                    }}
+                    className="rounded-xl border border-slate-200 bg-white p-3 text-left text-sm hover:bg-slate-50"
+                  >
+                    <div className="font-semibold">Alternative {index + 1}</div>
+                    <div className="text-slate-600">{candidate.title}</div>
+                    <div className="mt-2 text-xs text-slate-500">Score {result.score} · Violations {result.violations.length}</div>
+                  </button>
+                );
+              })}
+            </CardBody>
+          </Card>
+        ) : null}
 
         <ScoreGrid
           score={score}
@@ -148,8 +200,14 @@ export function GeneratePage() {
             </div>
           </CardBody>
         </Card>
+
+        <Card>
+          <CardHeader><div className="text-sm font-semibold">Verified Examples</div></CardHeader>
+          <CardBody className="text-sm text-slate-600">
+            The default example library only includes scores verified to evaluate with zero violations. Study examples remain available in the Examples page, but they are not loaded automatically.
+          </CardBody>
+        </Card>
       </div>
     </AppShell>
   );
 }
-

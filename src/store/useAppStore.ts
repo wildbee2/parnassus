@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { CounterpointScore, Species } from '../counterpoint/model';
+import type { CounterpointScore, GeneratedResult, Species } from '../counterpoint/model';
 import { DEFAULT_RANGES } from '../counterpoint/model';
 import { generateCantusFirmus } from '../generator/cantusGenerator';
 import { generateCounterpointScore } from '../generator/multiVoiceGenerator';
@@ -51,7 +51,7 @@ export interface AppState {
   undo: () => void;
   redo: () => void;
   evaluate: () => void;
-  generate: (seed?: number) => void;
+  generate: () => GeneratedResult;
   loadExample: (score: CounterpointScore) => void;
   updateSettings: (patch: Partial<AppSettings>) => void;
   clearScore: () => void;
@@ -169,7 +169,8 @@ export const useAppStore = create<AppState>()(
         return { score: next, history: [...state.history, state.score], future: rest };
       }),
       evaluate: () => set((state) => ({ evaluation: evaluateCounterpoint(state.score) })),
-      generate: (seed = get().score.seed ?? 17) => {
+      generate: () => {
+        const seed = get().score.seed ?? 17;
         const result = generateCounterpointScore({
           score: get().score,
           options: { beamWidth: 40, maxBacktracks: 80, seed, strictness: get().settings.strictnessProfile }
@@ -183,6 +184,7 @@ export const useAppStore = create<AppState>()(
             ...state.recentExercises
           ].slice(0, 10)
         }));
+        return result;
       },
       loadExample: (score) => set((state) => ({
         history: [...state.history, state.score],
