@@ -14,10 +14,10 @@ export function LandingPage() {
             <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Landing</div>
           </CardHeader>
           <CardBody className="grid gap-4 lg:grid-cols-2">
-            <Link to="/generate" className="group rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-950 to-slate-800 p-6 text-white shadow-soft transition hover:translate-y-[-1px]">
-              <div className="text-sm uppercase tracking-[0.2em] text-slate-300">Generate Counterpoint</div>
-              <div className="mt-3 text-2xl font-semibold">Compose with constraints</div>
-              <p className="mt-2 max-w-md text-sm text-slate-300">Build species counterpoint with a seeded search engine, custom ranges, and configurable rules.</p>
+            <Link to="/playback" className="group rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-950 to-slate-800 p-6 text-white shadow-soft transition hover:translate-y-[-1px]">
+              <div className="text-sm uppercase tracking-[0.2em] text-slate-300">Example Playback</div>
+              <div className="mt-3 text-2xl font-semibold">Play and inspect examples</div>
+              <p className="mt-2 max-w-md text-sm text-slate-300">Load a verified counterpoint example, edit it, and hear it with different playback presets.</p>
             </Link>
             <Link to="/evaluate" className="group rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-6 shadow-soft transition hover:translate-y-[-1px]">
               <div className="text-sm uppercase tracking-[0.2em] text-slate-500">Evaluate Counterpoint</div>

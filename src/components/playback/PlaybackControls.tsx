@@ -3,37 +3,27 @@ import { useEffect, useRef, useState } from 'react';
 import type { CounterpointScore } from '../../counterpoint/model';
 import { Button, Card, CardBody, CardHeader, Input, Label } from '../ui';
 
-type InstrumentPreset = 'grand_piano' | 'organ' | 'trumpet' | 'violin' | 'harpsichord' | 'flute';
+type InstrumentPreset = 'grand_piano' | 'organ' | 'trumpet' | 'pipe_organ';
 
 function createInstrument(preset: InstrumentPreset): Tone.PolySynth {
   const synth = new Tone.PolySynth().toDestination();
   const voice = synth as unknown as {
     set?: (options: Record<string, unknown>) => void;
   };
-  if (preset === 'harpsichord') {
-    voice.set?.({
-      oscillator: { type: 'square8' },
-      envelope: { attack: 0.002, decay: 0.18, sustain: 0.0, release: 0.08 }
-    });
-  } else if (preset === 'flute') {
+  if (preset === 'pipe_organ') {
     voice.set?.({
       oscillator: { type: 'sine' },
       envelope: { attack: 0.08, decay: 0.12, sustain: 0.55, release: 0.45 }
     });
   } else if (preset === 'organ') {
     voice.set?.({
-      oscillator: { type: 'square' },
-      envelope: { attack: 0.01, decay: 0.12, sustain: 0.75, release: 0.35 }
+      oscillator: { type: 'sawtooth4' },
+      envelope: { attack: 0.05, decay: 0.14, sustain: 0.58, release: 0.35 }
     });
   } else if (preset === 'trumpet') {
     voice.set?.({
       oscillator: { type: 'sawtooth' },
       envelope: { attack: 0.03, decay: 0.16, sustain: 0.45, release: 0.2 }
-    });
-  } else if (preset === 'violin') {
-    voice.set?.({
-      oscillator: { type: 'sawtooth4' },
-      envelope: { attack: 0.05, decay: 0.14, sustain: 0.58, release: 0.35 }
     });
   } else {
     voice.set?.({
@@ -125,11 +115,9 @@ export function PlaybackControls({ score }: { score: CounterpointScore }) {
             className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
           >
             <option value="grand_piano">Grand piano</option>
-            <option value="organ">Organ</option>
             <option value="trumpet">Trumpet</option>
-            <option value="violin">Violin</option>
-            <option value="harpsichord">Harpsichord-like</option>
-            <option value="flute">Flute-like</option>
+            <option value="organ">Organ</option>
+            <option value="pipe_organ">Pipe organ</option>
           </select>
         </div>
       </CardBody>

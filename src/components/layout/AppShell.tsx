@@ -7,7 +7,7 @@ import { ArrowLeftRight, FileDown, FileUp, Zap } from 'lucide-react';
 import { exportScoreJson, importScoreJson } from '../../importExport/json';
 
 const navItems = [
-  { to: '/generate', label: 'Generate' },
+  { to: '/playback', label: 'Example Playback' },
   { to: '/evaluate', label: 'Evaluate' },
   { to: '/rules', label: 'Rule Reference' },
   { to: '/settings', label: 'Settings' }
@@ -16,30 +16,25 @@ const navItems = [
 export function AppShell({
   title,
   inspector,
-  children,
-  onExportJson,
-  onImportJson
+  children
 }: {
   title: string;
   inspector?: ReactNode;
   children: ReactNode;
-  onExportJson?: () => void;
-  onImportJson?: () => void;
 }) {
   const location = useLocation();
   const { score } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function downloadJson() {
-    if (onExportJson) {
-      onExportJson();
-      return;
-    }
+    const defaultName = `${score.title || 'counterpoint-score'}.json`;
+    const filename = window.prompt('Export filename', defaultName)?.trim() || defaultName;
+    const safeName = filename.toLowerCase().endsWith('.json') ? filename : `${filename}.json`;
     const blob = new Blob([exportScoreJson(score)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = `${score.title || 'counterpoint-score'}.json`;
+    anchor.download = safeName;
     anchor.click();
     URL.revokeObjectURL(url);
   }
@@ -50,6 +45,8 @@ export function AppShell({
       const parsed = importScoreJson(raw);
       const store = useAppStore.getState();
       store.setScore(parsed);
+      store.setSelectedNoteId(undefined);
+      store.setSelectedVoiceId(undefined);
       store.evaluate();
     } catch (error) {
       window.alert(error instanceof Error ? error.message : 'Unable to import JSON');
@@ -57,10 +54,6 @@ export function AppShell({
   }
 
   function openImportDialog() {
-    if (onImportJson) {
-      onImportJson();
-      return;
-    }
     fileInputRef.current?.click();
   }
 
@@ -71,7 +64,7 @@ export function AppShell({
           <div className="mb-6">
             <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Gradus Counterpoint Studio</div>
             <h1 className="mt-2 text-2xl font-semibold text-slate-950">{title}</h1>
-            <p className="mt-2 text-sm text-slate-600">Generate, hear, and analyze species counterpoint.</p>
+            <p className="mt-2 text-sm text-slate-600">Play back, hear, and analyze counterpoint examples.</p>
           </div>
           <nav className="space-y-1">
             {navItems.map((item) => {

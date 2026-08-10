@@ -6,46 +6,18 @@ import { InspectorPanel } from '../components/inspector/InspectorPanel';
 import { Badge, Button, Card, CardBody, CardHeader, Input, Label, Select } from '../components/ui';
 import { useAppStore } from '../store/useAppStore';
 import { evaluateCounterpoint } from '../counterpoint/evaluator';
-import type { CounterpointScore, Species } from '../counterpoint/model';
+import type { CounterpointScore } from '../counterpoint/model';
 import { canonicalExamples } from '../examples/builtInExamples';
 
-const SPECIES: Species[] = ['first', 'second', 'third', 'fourth', 'fifth'];
-
 export function GeneratePage() {
-  const { score, updateScore, updateVoice, evaluate, updateNote, setTempo, setTitle, generate: generateScore, loadExample } = useAppStore();
+  const { score, updateScore, evaluate, updateNote, setTempo, setTitle, loadExample, clearScore } = useAppStore();
   const [selectedExampleId, setSelectedExampleId] = useState('');
 
-  const generationSummary = useMemo(() => evaluateCounterpoint(score), [score]);
-
-  function resizeVoices(count: number) {
-    updateScore((current) => {
-      const cf = current.voices.find((voice) => voice.role === 'cantus') ?? current.voices[0];
-      const cpVoices = current.voices.filter((voice) => voice.role !== 'cantus');
-      const nextVoices = [cf];
-      for (let index = 0; index < count - 1; index += 1) {
-        nextVoices.push(cpVoices[index] ?? {
-          id: `cp${index + 1}`,
-          name: `Counterpoint ${index + 1}`,
-          role: 'counterpoint',
-          species: SPECIES[index % SPECIES.length],
-          rangeMinMidi: 48,
-          rangeMaxMidi: 76,
-          position: index === count - 2 ? 'below' : 'above',
-          notes: []
-        });
-      }
-      return { ...current, voices: nextVoices };
-    });
-  }
-
-  function generate() {
-    generateScore();
-    setSelectedExampleId('');
-  }
+  const exampleSummary = useMemo(() => evaluateCounterpoint(score), [score]);
 
   return (
     <AppShell
-      title="Generate"
+      title="Example Playback"
       inspector={<InspectorPanel score={score} onApplyFix={(noteId, newMidi) => {
         const voice = score.voices.find((candidate) => candidate.notes.some((note) => note.id === noteId));
         if (voice) updateNote(voice.id, noteId, { midi: newMidi });
@@ -57,21 +29,13 @@ export function GeneratePage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm font-semibold">Generation Setup</div>
-                <div className="text-xs text-slate-500">Fux-inspired strict species counterpoint</div>
+                <div className="text-sm font-semibold">Example Selection</div>
+                <div className="text-xs text-slate-500">Choose a verified example to load into the editor and playback controls.</div>
               </div>
               <Badge tone="info">{score.mode}</Badge>
             </div>
           </CardHeader>
-          <CardBody className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
-            <div className="space-y-2">
-              <Label>Number of voices</Label>
-              <Select value={score.voices.length} onChange={(event) => resizeVoices(Number(event.target.value))}>
-                <option value={2}>2</option>
-                <option value={3}>3</option>
-                <option value={4}>4</option>
-              </Select>
-            </div>
+          <CardBody className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
             <div className="space-y-2">
               <Label>Example</Label>
               <Select
@@ -120,14 +84,6 @@ export function GeneratePage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Seed</Label>
-              <Input
-                type="number"
-                value={score.seed ?? 17}
-                onChange={(event) => updateScore((current) => ({ ...current, seed: Number(event.target.value) }))}
-              />
-            </div>
-            <div className="space-y-2">
               <Label>Title</Label>
               <Input value={score.title} onChange={(event) => setTitle(event.target.value)} />
             </div>
@@ -135,35 +91,30 @@ export function GeneratePage() {
               <Label>Tempo</Label>
               <Input type="number" value={score.tempoBpm} onChange={(event) => setTempo(Number(event.target.value))} />
             </div>
-            {score.voices
-              .filter((voice) => voice.role !== 'cantus')
-              .map((voice) => (
-                <div key={voice.id} className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <Label>{voice.name} species</Label>
-                    <Badge tone="neutral">{voice.position ?? 'auto'}</Badge>
-                  </div>
-                  <Select
-                    value={voice.species ?? 'first'}
-                    onChange={(event) => {
-                      updateVoice(voice.id, { species: event.target.value as Species });
-                      evaluate();
-                    }}
-                  >
-                    <option value="first">First species</option>
-                    <option value="second">Second species</option>
-                    <option value="third">Third species</option>
-                    <option value="fourth">Fourth species</option>
-                    <option value="fifth">Fifth species</option>
-                  </Select>
-                </div>
-              ))}
+            <div className="space-y-2">
+              <Label>Seed</Label>
+              <Input
+                type="number"
+                value={score.seed ?? 17}
+                onChange={(event) => updateScore((current) => ({ ...current, seed: Number(event.target.value) }))}
+              />
+            </div>
           </CardBody>
         </Card>
 
         <div className="flex flex-wrap gap-2">
-          <Button onClick={generate}>Generate</Button>
-          <Button variant="secondary" onClick={() => evaluate()}>Evaluate</Button>
+          <Button onClick={() => {
+            if (!selectedExampleId) return;
+            const example = canonicalExamples.find((candidate) => candidate.id === selectedExampleId);
+            if (example) {
+              loadExample(example);
+              evaluate();
+            }
+          }} disabled={!selectedExampleId}>Reload Example</Button>
+          <Button variant="secondary" onClick={() => {
+            clearScore();
+            setSelectedExampleId('');
+          }}>Blank Score</Button>
         </div>
 
         <ScoreGrid
@@ -181,15 +132,15 @@ export function GeneratePage() {
 
         <PlaybackControls score={score} />
         <Card>
-          <CardHeader><div className="text-sm font-semibold">Generation Summary</div></CardHeader>
+          <CardHeader><div className="text-sm font-semibold">Example Summary</div></CardHeader>
           <CardBody className="grid gap-4 md:grid-cols-2">
             <div>
-              <div className="text-sm">Score: {generationSummary.score}</div>
+              <div className="text-sm">Score: {exampleSummary.score}</div>
               <div className="text-xs text-slate-500">The numeric score is a pedagogical summary, not a historical or aesthetic verdict.</div>
             </div>
             <div>
-              <div className="text-sm">Violations: {generationSummary.violations.length}</div>
-              <div className="text-xs text-slate-500">{generationSummary.cadenceAnalysis.explanation}</div>
+              <div className="text-sm">Violations: {exampleSummary.violations.length}</div>
+              <div className="text-xs text-slate-500">{exampleSummary.cadenceAnalysis.explanation}</div>
             </div>
           </CardBody>
         </Card>

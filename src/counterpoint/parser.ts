@@ -6,6 +6,16 @@ export interface ParsedTextScore {
   errors: string[];
 }
 
+function parseVoiceLabel(label: string): { name: string; species?: Species } {
+  const match = label.match(/^(.*?)(?:\s*[\[(](first|second|third|fourth|fifth)[)\]])?$/i);
+  if (!match) {
+    return { name: label.trim() };
+  }
+  const name = match[1].trim();
+  const species = match[2]?.toLowerCase() as Species | undefined;
+  return { name, species };
+}
+
 function parseTokens(line: string): Array<{ pitch: string; duration: number; tieToNext: boolean }> {
   return line
     .split(/\s+/)
@@ -26,8 +36,12 @@ export function parseScoreText(text: string, baseScore: CounterpointScore): Pars
   const errors: string[] = [];
   for (const line of lines) {
     const [label, rhs] = line.split(':').map((part) => part.trim());
-    const voice = score.voices.find((candidate) => candidate.name.toLowerCase() === label.toLowerCase() || candidate.id.toLowerCase() === label.toLowerCase());
+    const { name, species } = parseVoiceLabel(label);
+    const voice = score.voices.find((candidate) => candidate.name.toLowerCase() === name.toLowerCase() || candidate.id.toLowerCase() === name.toLowerCase());
     if (!voice || !rhs) continue;
+    if (species && voice.role === 'counterpoint') {
+      voice.species = species;
+    }
     const tokens = parseTokens(rhs);
     voice.notes = tokens.map((token, index) => {
       const startTick = index * (score.ticksPerWhole / token.duration);
@@ -54,4 +68,3 @@ export function scoreToText(score: CounterpointScore): string {
 export function makeVoice(id: string, name: string, role: Voice['role'], species: Species | undefined, rangeMinMidi: number, rangeMaxMidi: number): Voice {
   return { id, name, role, species, rangeMinMidi, rangeMaxMidi, notes: [] };
 }
-

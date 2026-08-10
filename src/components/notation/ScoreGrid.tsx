@@ -30,7 +30,7 @@ export function ScoreGrid({
         <div className="flex items-center justify-between gap-2">
           <div>
             <div className="text-sm font-semibold">{score.title}</div>
-            <div className="text-xs text-slate-500">Seeded species score editor</div>
+            <div className="text-xs text-slate-500">Example playback and score editor</div>
           </div>
           <Badge tone="neutral">{columns} grid positions</Badge>
         </div>

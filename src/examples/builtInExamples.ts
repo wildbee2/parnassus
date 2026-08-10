@@ -145,7 +145,7 @@ export const canonicalExamples: CounterpointScore[] = [
     species: 'third'
   }),
   makeTwoVoiceExample({
-    title: 'Two Voices - Fourth Species',
+    title: 'Two Voices - First Species (Tied)',
     mode: 'ionian',
     tonicPitchClass: 0,
     cfRange: { min: 61, max: 64 },
@@ -243,7 +243,7 @@ export const canonicalExamples: CounterpointScore[] = [
     ]
   }),
   makeTextureExample({
-    title: 'Three Voices - Violin Trio Third Species',
+    title: 'Three Voices - Violin Trio First Species',
     mode: 'dorian',
     tonicPitchClass: 2,
     voices: [
