@@ -192,4 +192,11 @@ describe('evaluation', () => {
     const result = evaluateCounterpoint(score);
     expect(result.violations.map((violation) => violation.ruleId)).toContain('MEL_RANGE');
   });
+
+  test('mode/key violation is detected', () => {
+    const score = baseScore();
+    score.voices[1].notes[0].midi = 61;
+    const result = evaluateCounterpoint(score);
+    expect(result.violations.map((violation) => violation.ruleId)).toContain('MEL_KEY');
+  });
 });

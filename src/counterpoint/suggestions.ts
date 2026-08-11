@@ -3,6 +3,7 @@ import { evaluateCounterpoint } from './evaluator';
 import { speciesDurationAtIndex, voiceEndTick } from './species';
 import { modeDegreeToPc } from '../music/mode';
 import { midiToPitchClass, midiToNoteName } from '../music/pitch';
+import type { GenerationStyle } from './model';
 
 export function suggestRepairsForViolation(score: CounterpointScore, violation: RuleViolation): SuggestedFix[] {
   if (violation.suggestedFixes?.length) return violation.suggestedFixes;
@@ -38,6 +39,14 @@ function modalPitchCandidatesInRange(min: number, max: number, mode: Counterpoin
   return out;
 }
 
+function chromaticPitchCandidatesInRange(min: number, max: number): number[] {
+  const out: number[] = [];
+  for (let midi = min; midi <= max; midi += 1) {
+    out.push(midi);
+  }
+  return out;
+}
+
 function violationSignature(violation: RuleViolation): string {
   return [
     violation.ruleId,
@@ -58,23 +67,23 @@ function shuffle<T>(items: T[], random = Math.random): T[] {
   return out;
 }
 
-export function suggestNoteAddition(score: CounterpointScore, random = Math.random): CounterpointScore | null {
-  const counterpointVoices = score.voices.filter((voice) => voice.role === 'counterpoint');
-  if (!counterpointVoices.length) return null;
+export function suggestNoteAddition(score: CounterpointScore, random = Math.random, heuristicMode: GenerationStyle = 'strict'): CounterpointScore | null {
+  if (!score.voices.length) return null;
 
-  const endTicks = counterpointVoices.map((voice) => voiceEndTick(voice));
+  const endTicks = score.voices.map((voice) => voiceEndTick(voice));
   const shortest = Math.min(...endTicks);
   const longest = Math.max(...endTicks);
-  const candidateVoices = shortest < longest
-    ? counterpointVoices.filter((voice, index) => endTicks[index] === shortest)
-    : counterpointVoices;
+  const shortestVoices = score.voices.filter((voice, index) => endTicks[index] === shortest);
+  const candidateVoices = shortest < longest && shortestVoices.length === 1 ? shortestVoices : score.voices;
   const targetVoice = candidateVoices[Math.floor(random() * candidateVoices.length)] ?? candidateVoices[0];
   if (!targetVoice) return null;
 
   const insertTick = voiceEndTick(targetVoice);
   const durationTicks = speciesDurationAtIndex(targetVoice.species, targetVoice.notes.length, score.ticksPerWhole);
-  const candidatePitches = shuffle(modalPitchCandidatesInRange(targetVoice.rangeMinMidi, targetVoice.rangeMaxMidi, score.mode, score.tonicPitchClass), random);
-  const baselineSignatures = new Set(evaluateCounterpoint(score).violations.map(violationSignature));
+  const modalCandidates = modalPitchCandidatesInRange(targetVoice.rangeMinMidi, targetVoice.rangeMaxMidi, score.mode, score.tonicPitchClass);
+  const chromaticCandidates = chromaticPitchCandidatesInRange(targetVoice.rangeMinMidi, targetVoice.rangeMaxMidi);
+  const candidatePitches = shuffle([...new Set([...modalCandidates, ...chromaticCandidates])], random);
+  const baselineSignatures = new Set(evaluateCounterpoint(score, heuristicMode).violations.map(violationSignature));
 
   for (const midi of candidatePitches) {
     const nextScore = structuredClone(score);
@@ -85,11 +94,19 @@ export function suggestNoteAddition(score: CounterpointScore, random = Math.rand
       id: noteId,
       midi,
       startTick: insertTick,
-      durationTicks
+      durationTicks,
+      tiedFromPrevious: nextVoice.species === 'fourth' && nextVoice.notes.length > 0 ? true : undefined,
+      tiedToNext: nextVoice.species === 'fourth' && nextVoice.notes.length === 0 ? true : undefined
     };
+    if (nextVoice.species === 'fourth' && nextVoice.notes.length > 0) {
+      const previousNote = nextVoice.notes.at(-1);
+      if (previousNote) {
+        previousNote.tiedToNext = true;
+      }
+    }
     nextVoice.notes = [...nextVoice.notes, note];
 
-    const newEvaluation = evaluateCounterpoint(nextScore);
+    const newEvaluation = evaluateCounterpoint(nextScore, heuristicMode);
     const newViolations = newEvaluation.violations.filter((violation) => !baselineSignatures.has(violationSignature(violation)));
     if (!newViolations.length) {
       return nextScore;

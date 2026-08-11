@@ -82,7 +82,9 @@ export function AppShell({
                 <Badge tone="info">Seed {score.seed ?? 17}</Badge>
                 <Badge tone="neutral">{score.mode}</Badge>
               </div>
-              <p className="mt-2 text-xs text-slate-600">Profile: {useAppStore.getState().settings.strictnessProfile}</p>
+              <p className="mt-2 text-xs text-slate-600">
+                Profile: {useAppStore.getState().settings.strictnessProfile} · Heuristics: {useAppStore.getState().settings.heuristicMode}
+              </p>
             </Card>
           </div>
         </aside>

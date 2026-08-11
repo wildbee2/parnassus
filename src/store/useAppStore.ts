@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { CounterpointScore, GeneratedResult, Species } from '../counterpoint/model';
+import type { CounterpointScore, GeneratedResult, GenerationStyle, Species } from '../counterpoint/model';
 import { DEFAULT_RANGES } from '../counterpoint/model';
 import { generateCantusFirmus } from '../generator/cantusGenerator';
 import { generateCounterpointScore } from '../generator/multiVoiceGenerator';
@@ -23,6 +23,7 @@ export interface AppSettings {
   musicaFicta: boolean;
   fourthAboveBassDissonant: boolean;
   strictnessProfile: 'strict' | 'balanced' | 'permissive';
+  heuristicMode: GenerationStyle;
 }
 
 export interface RecentExercise {
@@ -116,7 +117,8 @@ const defaultSettings: AppSettings = {
   cadenceStrictness: 0.9,
   musicaFicta: false,
   fourthAboveBassDissonant: true,
-  strictnessProfile: 'strict'
+  strictnessProfile: 'strict',
+  heuristicMode: 'strict'
 };
 
 export const useAppStore = create<AppState>()(
@@ -168,12 +170,18 @@ export const useAppStore = create<AppState>()(
         if (!next) return state;
         return { score: next, history: [...state.history, state.score], future: rest };
       }),
-      evaluate: () => set((state) => ({ evaluation: evaluateCounterpoint(state.score) })),
+      evaluate: () => set((state) => ({ evaluation: evaluateCounterpoint(state.score, get().settings.heuristicMode) })),
       generate: () => {
         const seed = get().score.seed ?? 17;
         const result = generateCounterpointScore({
           score: get().score,
-          options: { beamWidth: 40, maxBacktracks: 80, seed, strictness: get().settings.strictnessProfile }
+          options: {
+            beamWidth: 40,
+            maxBacktracks: 80,
+            seed,
+            strictness: get().settings.strictnessProfile,
+            heuristicMode: get().settings.heuristicMode
+          }
         });
         set((state) => ({
           history: [...state.history, state.score],
@@ -192,7 +200,7 @@ export const useAppStore = create<AppState>()(
         future: [],
         selectedNoteId: undefined,
         selectedVoiceId: undefined,
-        evaluation: evaluateCounterpoint(score),
+        evaluation: evaluateCounterpoint(score, get().settings.heuristicMode),
         recentExercises: [
           { id: score.id, title: score.title, timestamp: Date.now() },
           ...state.recentExercises
@@ -203,6 +211,15 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'gradus-counterpoint-studio',
+      version: 2,
+      migrate: (persistedState) => {
+        const legacyState = persistedState as Partial<Pick<AppState, 'settings' | 'recentExercises' | 'score'>> | undefined;
+        return {
+          settings: { ...defaultSettings, ...(legacyState?.settings ?? {}) },
+          recentExercises: legacyState?.recentExercises ?? [],
+          score: legacyState?.score ?? makeScore()
+        };
+      },
       partialize: (state) => ({
         settings: state.settings,
         recentExercises: state.recentExercises,

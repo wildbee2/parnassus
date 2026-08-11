@@ -3,10 +3,12 @@ import { classifyIntervalSemitones, isDissonance } from '../../music/consonance'
 import { beatLabelFromTick } from '../../music/rhythm';
 import { intervalInfo } from '../../music/interval';
 import { classifyMotion, isHiddenPerfect, isPerfectIntervalSemitoneClass } from '../../music/motion';
+import { modePitchClasses } from '../../music/mode';
 import { midiToNoteName } from '../../music/pitch';
 import type {
   CounterpointRule,
   CounterpointScore,
+  GenerationStyle,
   NoteEvent,
   RuleContext,
   RuleMetadata,
@@ -16,6 +18,13 @@ import type {
 } from '../model';
 
 type NoteAtTick = { voice: Voice; note: NoteEvent };
+const HUMAN_LIKE_SOFT_RULE_IDS = new Set([
+  'MEL_REPEATED_NOTES',
+  'MEL_CLIMAX',
+  'HAR_VOICE_OVERLAP',
+  'TEX_DUPLICATED_LINE',
+  'TEX_EXCESSIVE_PARALLEL_MOTION'
+]);
 
 const severityFor = (ruleId: string) => {
   if (ruleId.startsWith('HAR_PARALLEL') || ruleId.startsWith('HAR_DIRECT') || ruleId.startsWith('SP4_UNPREPARED') || ruleId.startsWith('SP4_UNRESOLVED') || ruleId.startsWith('SP2_BAD') || ruleId.startsWith('SP3_BAD') || ruleId.startsWith('SP5_BAD')) {
@@ -64,6 +73,13 @@ const ruleViolation = (
   suggestedFixes,
   category
 });
+
+function filterViolationsByStyle(violations: RuleViolation[], heuristicMode: GenerationStyle = 'strict'): RuleViolation[] {
+  if (heuristicMode === 'humanLike') {
+    return violations.filter((violation) => !HUMAN_LIKE_SOFT_RULE_IDS.has(violation.ruleId));
+  }
+  return violations;
+}
 
 function uniqueTicks(score: CounterpointScore): number[] {
   return [...new Set(score.voices.flatMap((voice) => voice.notes.map((note) => note.startTick)))].sort((a, b) => a - b);
@@ -129,6 +145,7 @@ function createParallelFixes(score: CounterpointScore, a: Voice, b: Voice, noteA
 
 function melodicViolations(score: CounterpointScore): RuleViolation[] {
   const out: RuleViolation[] = [];
+  const keyPitchClasses = new Set(modePitchClasses(score.mode, score.tonicPitchClass));
   for (const voice of score.voices) {
     const notes = voice.notes;
     if (!notes.length) continue;
@@ -136,6 +153,17 @@ function melodicViolations(score: CounterpointScore): RuleViolation[] {
     let climaxIndex = 0;
     for (let i = 0; i < notes.length; i += 1) {
       const note = notes[i];
+      if (!keyPitchClasses.has(note.midi % 12)) {
+        out.push(ruleViolation(
+          'MEL_KEY',
+          'melody',
+          `${voice.name} leaves the established mode.`,
+          `${midiToNoteName(note.midi)} is outside the pitch collection for ${score.mode} on pitch class ${score.tonicPitchClass}.`,
+          [voice.id],
+          note.startTick,
+          [note.id]
+        ));
+      }
       if (note.midi < voice.rangeMinMidi || note.midi > voice.rangeMaxMidi) {
         out.push(ruleViolation(
           'MEL_RANGE',
@@ -357,6 +385,14 @@ export const RULES: CounterpointRule[] = [
     metadata: meta('MEL_RANGE', 'Melodic Range', 'A line should remain within its assigned range.', 'Notes outside the configured range are treated as direct violations because they are singability problems rather than merely stylistic issues.', 'all', true, 'range')
   },
   {
+    id: 'MEL_KEY',
+    name: 'Mode / Key',
+    category: 'melody',
+    applies: () => true,
+    evaluate: (context) => melodicViolations(context.score).filter((v) => v.ruleId === 'MEL_KEY'),
+    metadata: meta('MEL_KEY', 'Mode / Key', 'Voices should stay within the selected mode.', 'This rule treats accidental pitch classes outside the chosen mode as errors so the cantus firmus and counterpoint remain grounded in the same tonal collection.', 'all', true, 'melody')
+  },
+  {
     id: 'MEL_REPEATED_NOTES',
     name: 'Repeated Notes',
     category: 'melody',
@@ -542,8 +578,8 @@ export const RULES: CounterpointRule[] = [
   }
 ];
 
-export function evaluateScore(score: CounterpointScore): { violations: RuleViolation[]; cadence: ReturnType<typeof analyzeCadence> } {
-  const violations = RULES.flatMap((rule) => rule.evaluate({ score }));
+export function evaluateScore(score: CounterpointScore, heuristicMode: GenerationStyle = 'strict'): { violations: RuleViolation[]; cadence: ReturnType<typeof analyzeCadence> } {
+  const violations = filterViolationsByStyle(RULES.flatMap((rule) => rule.evaluate({ score })), heuristicMode);
   return { violations, cadence: analyzeCadence(score) };
 }
 

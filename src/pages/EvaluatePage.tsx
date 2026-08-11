@@ -10,20 +10,33 @@ import { evaluateCounterpoint } from '../counterpoint/evaluator';
 import { suggestNoteAddition } from '../counterpoint/suggestions';
 
 export function EvaluatePage() {
-  const { score, updateScore, updateVoice, evaluate, updateNote, setScore } = useAppStore();
+  const { score, updateScore, updateVoice, evaluate, updateNote, setScore, setSelectedNoteId, setSelectedVoiceId, settings } = useAppStore();
   const [text, setText] = useState('CF: D4/2 E4/2 F4/2 G4/2\nCP1 (second): A4/4 C5/4 A4/4 C5/4 B4/4 A4/4 C5/4 D5/4');
-  const result = evaluateCounterpoint(score);
+  const [suggestionMessage, setSuggestionMessage] = useState<string | null>(null);
+  const result = evaluateCounterpoint(score, settings.heuristicMode);
 
   function importText() {
     const parsed = parseScoreText(text, score);
     setScore(parsed.score);
+    setSuggestionMessage(null);
     evaluate();
   }
 
   function suggest() {
-    const nextScore = suggestNoteAddition(score);
-    if (!nextScore) return;
+    const previousLengths = new Map(score.voices.map((voice) => [voice.id, voice.notes.length]));
+    const nextScore = suggestNoteAddition(score, Math.random, settings.heuristicMode);
+    if (!nextScore) {
+      setSuggestionMessage('No legal next note could be found for the current score and species settings.');
+      return;
+    }
     setScore(nextScore);
+    setSuggestionMessage(null);
+    const changedVoice = nextScore.voices.find((voice) => (previousLengths.get(voice.id) ?? 0) < voice.notes.length);
+    const addedNote = changedVoice?.notes.at(-1);
+    if (changedVoice && addedNote) {
+      setSelectedVoiceId(changedVoice.id);
+      setSelectedNoteId(addedNote.id);
+    }
     evaluate();
   }
 
@@ -83,7 +96,14 @@ export function EvaluatePage() {
                 </div>
               ))}
             <div className="md:col-span-2 flex justify-end">
-              <Button onClick={suggest}>Suggest</Button>
+              <div className="space-y-2 text-right">
+                <Button onClick={suggest}>Suggest</Button>
+                {suggestionMessage ? (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-left text-sm text-red-700">
+                    {suggestionMessage}
+                  </div>
+                ) : null}
+              </div>
             </div>
           </CardBody>
         </Card>

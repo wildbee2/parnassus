@@ -114,6 +114,19 @@ export function SettingsPage() {
                 Higher values make direct motion into fifths and octaves harder for the generator to accept.
               </div>
             </div>
+            <div className="space-y-2">
+              <Label>Generation heuristics</Label>
+              <Select
+                value={settings.heuristicMode}
+                onChange={(event) => updateSettings({ heuristicMode: event.target.value as typeof settings.heuristicMode })}
+              >
+                <option value="strict">Strict evaluation</option>
+                <option value="humanLike">Human-like heuristics</option>
+              </Select>
+              <div className="text-sm text-slate-600">
+                Human-like mode keeps the core contrapuntal constraints but relaxes a few stylistic rules and biases generation toward smoother, longer phrases.
+              </div>
+            </div>
           </CardBody>
         </Card>
       </div>

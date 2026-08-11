@@ -84,6 +84,17 @@ export function InspectorPanel({ score, onApplyFix }: { score: CounterpointScore
               <option value="permissive">Historically Permissive</option>
             </select>
           </div>
+          <div className="space-y-2">
+            <Label>Generation Heuristics</Label>
+            <select
+              value={settings.heuristicMode}
+              onChange={(event) => updateSettings({ heuristicMode: event.target.value as typeof settings.heuristicMode })}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            >
+              <option value="strict">Strict evaluation</option>
+              <option value="humanLike">Human-like heuristics</option>
+            </select>
+          </div>
           <div className="text-xs text-slate-500">Export JSON preview available from the toolbar.</div>
           <Textarea readOnly value={exportScoreJson(score)} rows={8} className="font-mono text-[11px]" />
         </CardBody>
@@ -105,4 +116,3 @@ export function InspectorPanel({ score, onApplyFix }: { score: CounterpointScore
     </div>
   );
 }
-

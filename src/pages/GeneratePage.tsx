@@ -10,10 +10,10 @@ import type { CounterpointScore } from '../counterpoint/model';
 import { canonicalExamples } from '../examples/builtInExamples';
 
 export function GeneratePage() {
-  const { score, updateScore, evaluate, updateNote, setTempo, setTitle, loadExample, clearScore } = useAppStore();
+  const { score, updateScore, evaluate, updateNote, setTempo, setTitle, loadExample, clearScore, settings } = useAppStore();
   const [selectedExampleId, setSelectedExampleId] = useState('');
 
-  const exampleSummary = useMemo(() => evaluateCounterpoint(score), [score]);
+  const exampleSummary = useMemo(() => evaluateCounterpoint(score, settings.heuristicMode), [score, settings.heuristicMode]);
 
   return (
     <AppShell

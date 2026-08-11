@@ -1,0 +1,187 @@
+{
+  "id": "sim-13-2-phrygian-4-second-permissive",
+  "title": "Simulation phrygian 13",
+  "tonicPitchClass": 4,
+  "mode": "phrygian",
+  "ticksPerWhole": 480,
+  "tempoBpm": 96,
+  "seed": 131531,
+  "voices": [
+    {
+      "id": "cf",
+      "name": "Cantus Firmus",
+      "role": "cantus",
+      "rangeMinMidi": 50,
+      "rangeMaxMidi": 69,
+      "notes": [
+        {
+          "id": "cf-0",
+          "midi": 64,
+          "startTick": 0,
+          "durationTicks": 480
+        },
+        {
+          "id": "cf-1",
+          "midi": 67,
+          "startTick": 480,
+          "durationTicks": 480
+        },
+        {
+          "id": "cf-2",
+          "midi": 69,
+          "startTick": 960,
+          "durationTicks": 480
+        },
+        {
+          "id": "cf-3",
+          "midi": 69,
+          "startTick": 1440,
+          "durationTicks": 480
+        },
+        {
+          "id": "cf-4",
+          "midi": 69,
+          "startTick": 1920,
+          "durationTicks": 480
+        },
+        {
+          "id": "cf-5",
+          "midi": 67,
+          "startTick": 2400,
+          "durationTicks": 480
+        },
+        {
+          "id": "cf-6",
+          "midi": 65,
+          "startTick": 2880,
+          "durationTicks": 480
+        },
+        {
+          "id": "cf-7",
+          "midi": 64,
+          "startTick": 3360,
+          "durationTicks": 480
+        },
+        {
+          "id": "cf-8",
+          "midi": 62,
+          "startTick": 3840,
+          "durationTicks": 480
+        },
+        {
+          "id": "cf-9",
+          "midi": 60,
+          "startTick": 4320,
+          "durationTicks": 480
+        },
+        {
+          "id": "cf-10",
+          "midi": 57,
+          "startTick": 4800,
+          "durationTicks": 480
+        },
+        {
+          "id": "cf-11",
+          "midi": 55,
+          "startTick": 5280,
+          "durationTicks": 480
+        },
+        {
+          "id": "cf-12",
+          "midi": 52,
+          "startTick": 5760,
+          "durationTicks": 480
+        }
+      ]
+    },
+    {
+      "id": "cp1",
+      "name": "Counterpoint 1",
+      "role": "counterpoint",
+      "species": "second",
+      "rangeMinMidi": 55,
+      "rangeMaxMidi": 76,
+      "position": "above",
+      "notes": [
+        {
+          "id": "cp1-0",
+          "midi": 67,
+          "startTick": 0,
+          "durationTicks": 240
+        },
+        {
+          "id": "cp1-1",
+          "midi": 64,
+          "startTick": 480,
+          "durationTicks": 240
+        },
+        {
+          "id": "cp1-2",
+          "midi": 60,
+          "startTick": 960,
+          "durationTicks": 240
+        },
+        {
+          "id": "cp1-3",
+          "midi": 57,
+          "startTick": 1440,
+          "durationTicks": 240
+        },
+        {
+          "id": "cp1-4",
+          "midi": 65,
+          "startTick": 1920,
+          "durationTicks": 240
+        },
+        {
+          "id": "cp1-5",
+          "midi": 64,
+          "startTick": 2400,
+          "durationTicks": 240
+        },
+        {
+          "id": "cp1-6",
+          "midi": 62,
+          "startTick": 2880,
+          "durationTicks": 240
+        },
+        {
+          "id": "cp1-7",
+          "midi": 67,
+          "startTick": 3360,
+          "durationTicks": 240
+        },
+        {
+          "id": "cp1-8",
+          "midi": 65,
+          "startTick": 3840,
+          "durationTicks": 240
+        },
+        {
+          "id": "cp1-9",
+          "midi": 64,
+          "startTick": 4320,
+          "durationTicks": 240
+        },
+        {
+          "id": "cp1-10",
+          "midi": 60,
+          "startTick": 4800,
+          "durationTicks": 240
+        },
+        {
+          "id": "cp1-11",
+          "midi": 59,
+          "startTick": 5280,
+          "durationTicks": 240
+        },
+        {
+          "id": "cp1-12",
+          "midi": 64,
+          "startTick": 5760,
+          "durationTicks": 240
+        }
+      ]
+    }
+  ]
+}

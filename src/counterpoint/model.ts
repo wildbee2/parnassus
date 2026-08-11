@@ -1,6 +1,7 @@
 import type { ModeName } from '../music/mode';
 
 export type Species = 'first' | 'second' | 'third' | 'fourth' | 'fifth';
+export type GenerationStyle = 'strict' | 'humanLike';
 export type Severity = 'fatal' | 'error' | 'warning' | 'info';
 export type RuleCategory =
   | 'melody'
@@ -121,6 +122,7 @@ export interface SearchOptions {
   maxBacktracks: number;
   seed: number;
   strictness: 'strict' | 'balanced' | 'permissive';
+  heuristicMode?: GenerationStyle;
 }
 
 export interface Candidate {
@@ -166,4 +168,3 @@ export const DEFAULT_RANGES = {
   tenor: { min: 'C3', max: 'G4' },
   bass: { min: 'E2', max: 'C4' }
 } as const;
-

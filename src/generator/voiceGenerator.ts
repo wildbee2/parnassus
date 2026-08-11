@@ -1,7 +1,7 @@
 import { classifyIntervalSemitones } from '../music/consonance';
 import { modeDegreeToPc } from '../music/mode';
 import { midiToPitchClass } from '../music/pitch';
-import type { CounterpointScore, NoteEvent, Voice } from '../counterpoint/model';
+import type { CounterpointScore, GenerationStyle, NoteEvent, Voice } from '../counterpoint/model';
 import { SeededRandom } from './seededRandom';
 import { scoreCandidate } from './phraseScoring';
 import { generateCandidates } from './candidateGenerator';
@@ -12,6 +12,7 @@ export interface VoiceGenerationOptions {
   voice: Voice;
   seed: number;
   lockedNotes?: NoteEvent[];
+  heuristicMode?: GenerationStyle;
 }
 
 function sortUnique(values: number[]): number[] {
@@ -30,7 +31,7 @@ function candidateIsAllowed(midi: number, existing: Voice[], tick: number, voice
 }
 
 export function generateVoice(options: VoiceGenerationOptions): Voice {
-  const { score, voice, seed } = options;
+  const { score, voice, seed, heuristicMode = 'strict' } = options;
   const rng = new SeededRandom(seed);
   const cf = score.voices.find((v) => v.role === 'cantus');
   const source = cf ?? score.voices[0];
@@ -60,11 +61,31 @@ export function generateVoice(options: VoiceGenerationOptions): Voice {
           midi,
           previousMidi: notes.at(-1)?.midi ?? undefined,
           cfMidi,
-          tick
+          tick,
+          generationStyle: heuristicMode
         })
       }))
       .sort((a, b) => b.score - a.score);
-    const chosen = ranked[0]?.midi ?? cfMidi ?? voice.rangeMinMidi;
+    const chosen = (() => {
+      if (!ranked.length) return cfMidi ?? voice.rangeMinMidi;
+      if (heuristicMode !== 'humanLike' || ranked.length === 1) {
+        return ranked[0].midi;
+      }
+      if (i === 0) {
+        return ranked[0].midi;
+      }
+      const top = ranked.slice(0, Math.min(5, ranked.length));
+      const shortlist = i === 1 ? top.slice(0, Math.min(3, top.length)) : top;
+      const floor = shortlist[shortlist.length - 1].score;
+      const weights = shortlist.map((entry) => Math.max(0.1, entry.score - floor + (i === 1 ? 1 : 0.5)));
+      const total = weights.reduce((sum, weight) => sum + weight, 0);
+      let roll = rng.next() * total;
+      for (let index = 0; index < shortlist.length; index += 1) {
+        roll -= weights[index];
+        if (roll <= 0) return shortlist[index].midi;
+      }
+      return shortlist[0].midi;
+    })();
     const durationTicks = durations[i % durations.length];
     notes.push({
       id: `${voice.id}-${i}`,
