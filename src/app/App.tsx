@@ -8,7 +8,7 @@ import { SettingsPage } from '../pages/SettingsPage';
 export function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/playback" replace />} />
+      <Route path="/" element={<Navigate to="/lab" replace />} />
       <Route path="/playback" element={<GeneratePage />} />
       <Route path="/generate" element={<Navigate to="/playback" replace />} />
       <Route path="/evaluate" element={<EvaluatePage />} />
