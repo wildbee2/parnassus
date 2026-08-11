@@ -52,6 +52,7 @@ export function LabPage() {
   const [message, setMessage] = useState<string>('Configure the lab search and run a simulation.');
   const [progress, setProgress] = useState<string>('');
   const [labResult, setLabResult] = useState<string | null>(null);
+  const [runSeed, setRunSeed] = useState<number | null>(null);
 
   useEffect(() => {
     setSpeciesSelections((current) => resizeSpeciesSelections(totalVoices, current));
@@ -92,7 +93,9 @@ export function LabPage() {
 
   async function runLabSearch() {
     setIsSearching(true);
-    setMessage('Searching for a valid pattern...');
+    const nextRunSeed = Math.floor(Math.random() * 1_000_000_000);
+    setRunSeed(nextRunSeed);
+    setMessage(`Searching for a valid pattern with run seed ${nextRunSeed}...`);
     setProgress('');
     setLabResult(null);
 
@@ -106,6 +109,7 @@ export function LabPage() {
         heuristicMode: 'humanLike',
         instruments: instrumentSelections,
         maxAttempts,
+        seed: nextRunSeed,
         onAttempt: (attempt, maxAttempts) => {
           setProgress(`Attempt ${attempt} of ${maxAttempts}`);
         }
@@ -141,6 +145,7 @@ export function LabPage() {
               <div>
                 <div className="text-sm font-semibold">Lab Controls</div>
                 <div className="text-xs text-slate-500">Searches use a random seed, a random cantus firmus, human-like heuristics, and historically permissive filtering.</div>
+                <div className="mt-1 text-xs text-slate-500">Current run seed: {runSeed ?? 'not started yet'}</div>
               </div>
               <Badge tone="info">{isSearching ? 'Searching' : 'Ready'}</Badge>
             </div>

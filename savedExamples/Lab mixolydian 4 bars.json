@@ -1,0 +1,339 @@
+{
+  "id": "lab-636315970",
+  "title": "Lab mixolydian 4 bars",
+  "tonicPitchClass": 3,
+  "mode": "mixolydian",
+  "ticksPerWhole": 480,
+  "tempoBpm": 96,
+  "seed": 636315970,
+  "voices": [
+    {
+      "id": "cf",
+      "name": "Cantus Firmus",
+      "role": "cantus",
+      "rangeMinMidi": 50,
+      "rangeMaxMidi": 69,
+      "notes": [
+        {
+          "id": "cf-0",
+          "midi": 63,
+          "startTick": 0,
+          "durationTicks": 480
+        },
+        {
+          "id": "cf-1",
+          "midi": 65,
+          "startTick": 480,
+          "durationTicks": 480
+        },
+        {
+          "id": "cf-2",
+          "midi": 63,
+          "startTick": 960,
+          "durationTicks": 480
+        },
+        {
+          "id": "cf-3",
+          "midi": 63,
+          "startTick": 1440,
+          "durationTicks": 480
+        },
+        {
+          "id": "cf-4",
+          "midi": 60,
+          "startTick": 1920,
+          "durationTicks": 480
+        },
+        {
+          "id": "cf-5",
+          "midi": 60,
+          "startTick": 2400,
+          "durationTicks": 480
+        },
+        {
+          "id": "cf-6",
+          "midi": 53,
+          "startTick": 2880,
+          "durationTicks": 480
+        }
+      ],
+      "instrument": "trumpet"
+    },
+    {
+      "id": "cp1",
+      "name": "Counterpoint 1",
+      "role": "counterpoint",
+      "species": "third",
+      "instrument": "organ",
+      "rangeMinMidi": 55,
+      "rangeMaxMidi": 76,
+      "notes": [
+        {
+          "id": "cp1-0",
+          "midi": 72,
+          "startTick": 0,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp1-1",
+          "midi": 75,
+          "startTick": 120,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp1-2",
+          "midi": 70,
+          "startTick": 240,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp1-3",
+          "midi": 68,
+          "startTick": 360,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp1-4",
+          "midi": 68,
+          "startTick": 480,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp1-5",
+          "midi": 70,
+          "startTick": 600,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp1-6",
+          "midi": 67,
+          "startTick": 720,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp1-7",
+          "midi": 67,
+          "startTick": 840,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp1-8",
+          "midi": 67,
+          "startTick": 960,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp1-9",
+          "midi": 70,
+          "startTick": 1080,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp1-10",
+          "midi": 67,
+          "startTick": 1200,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp1-11",
+          "midi": 75,
+          "startTick": 1320,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp1-12",
+          "midi": 75,
+          "startTick": 1440,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp1-13",
+          "midi": 73,
+          "startTick": 1560,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp1-14",
+          "midi": 73,
+          "startTick": 1680,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp1-15",
+          "midi": 73,
+          "startTick": 1800,
+          "durationTicks": 120
+        }
+      ],
+      "position": "above"
+    },
+    {
+      "id": "cp2",
+      "name": "Counterpoint 2",
+      "role": "counterpoint",
+      "species": "fifth",
+      "instrument": "organ",
+      "rangeMinMidi": 48,
+      "rangeMaxMidi": 67,
+      "notes": [
+        {
+          "id": "cp2-0",
+          "midi": 48,
+          "startTick": 0,
+          "durationTicks": 240
+        },
+        {
+          "id": "cp2-1",
+          "midi": 49,
+          "startTick": 240,
+          "durationTicks": 240
+        },
+        {
+          "id": "cp2-2",
+          "midi": 49,
+          "startTick": 480,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp2-3",
+          "midi": 49,
+          "startTick": 600,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp2-4",
+          "midi": 51,
+          "startTick": 720,
+          "durationTicks": 240
+        },
+        {
+          "id": "cp2-5",
+          "midi": 51,
+          "startTick": 960,
+          "durationTicks": 240
+        },
+        {
+          "id": "cp2-6",
+          "midi": 51,
+          "startTick": 1200,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp2-7",
+          "midi": 53,
+          "startTick": 1320,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp2-8",
+          "midi": 56,
+          "startTick": 1440,
+          "durationTicks": 240
+        },
+        {
+          "id": "cp2-9",
+          "midi": 48,
+          "startTick": 1680,
+          "durationTicks": 240
+        }
+      ],
+      "position": "below"
+    },
+    {
+      "id": "cp3",
+      "name": "Counterpoint 3",
+      "role": "counterpoint",
+      "species": "first",
+      "instrument": "organ",
+      "rangeMinMidi": 50,
+      "rangeMaxMidi": 72,
+      "notes": [
+        {
+          "id": "cp3-0",
+          "midi": 56,
+          "startTick": 0,
+          "durationTicks": 480
+        },
+        {
+          "id": "cp3-1",
+          "midi": 56,
+          "startTick": 480,
+          "durationTicks": 480
+        },
+        {
+          "id": "cp3-2",
+          "midi": 60,
+          "startTick": 960,
+          "durationTicks": 480
+        },
+        {
+          "id": "cp3-3",
+          "midi": 56,
+          "startTick": 1440,
+          "durationTicks": 480
+        },
+        {
+          "id": "cp3-4",
+          "midi": 60,
+          "startTick": 1920,
+          "durationTicks": 480
+        },
+        {
+          "id": "cp3-5",
+          "midi": 53,
+          "startTick": 2400,
+          "durationTicks": 480
+        },
+        {
+          "id": "cp3-6",
+          "midi": 53,
+          "startTick": 2880,
+          "durationTicks": 480
+        },
+        {
+          "id": "cp3-7",
+          "midi": 56,
+          "startTick": 3360,
+          "durationTicks": 480
+        },
+        {
+          "id": "cp3-8",
+          "midi": 61,
+          "startTick": 3840,
+          "durationTicks": 480
+        },
+        {
+          "id": "cp3-9",
+          "midi": 56,
+          "startTick": 4320,
+          "durationTicks": 480
+        },
+        {
+          "id": "cp3-10",
+          "midi": 56,
+          "startTick": 4800,
+          "durationTicks": 480
+        },
+        {
+          "id": "cp3-11",
+          "midi": 53,
+          "startTick": 5280,
+          "durationTicks": 480
+        },
+        {
+          "id": "cp3-12",
+          "midi": 56,
+          "startTick": 5760,
+          "durationTicks": 480
+        },
+        {
+          "id": "cp3-13",
+          "midi": 53,
+          "startTick": 6240,
+          "durationTicks": 480
+        }
+      ],
+      "position": "auto"
+    }
+  ]
+}

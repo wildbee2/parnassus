@@ -22,7 +22,7 @@ export function AppShell({
   children: ReactNode;
 }) {
   const location = useLocation();
-  const { score } = useAppStore();
+  const { score, settings } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function downloadJson() {
@@ -82,7 +82,7 @@ export function AppShell({
                 <Badge tone="neutral">{score.mode}</Badge>
               </div>
               <p className="mt-2 text-xs text-slate-600">
-                Profile: {useAppStore.getState().settings.strictnessProfile} · Heuristics: {useAppStore.getState().settings.heuristicMode}
+                Profile: {settings.strictnessProfile} · Heuristics: {settings.heuristicMode}
               </p>
             </Card>
           </div>
