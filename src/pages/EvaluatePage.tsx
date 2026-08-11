@@ -7,6 +7,7 @@ import { Badge, Button, Card, CardBody, CardHeader, Label, Select, Textarea } fr
 import { useAppStore } from '../store/useAppStore';
 import { parseScoreText } from '../counterpoint/parser';
 import { evaluateCounterpoint } from '../counterpoint/evaluator';
+import { suggestNoteAddition } from '../counterpoint/suggestions';
 
 export function EvaluatePage() {
   const { score, updateScore, updateVoice, evaluate, updateNote, setScore } = useAppStore();
@@ -16,6 +17,13 @@ export function EvaluatePage() {
   function importText() {
     const parsed = parseScoreText(text, score);
     setScore(parsed.score);
+    evaluate();
+  }
+
+  function suggest() {
+    const nextScore = suggestNoteAddition(score);
+    if (!nextScore) return;
+    setScore(nextScore);
     evaluate();
   }
 
@@ -74,6 +82,9 @@ export function EvaluatePage() {
                   </Select>
                 </div>
               ))}
+            <div className="md:col-span-2 flex justify-end">
+              <Button onClick={suggest}>Suggest</Button>
+            </div>
           </CardBody>
         </Card>
         <ScoreGrid

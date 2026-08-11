@@ -5,6 +5,7 @@ import type { CounterpointScore, NoteEvent, Voice } from '../counterpoint/model'
 import { SeededRandom } from './seededRandom';
 import { scoreCandidate } from './phraseScoring';
 import { generateCandidates } from './candidateGenerator';
+import { speciesDurations } from '../counterpoint/species';
 
 export interface VoiceGenerationOptions {
   score: CounterpointScore;
@@ -15,25 +16,6 @@ export interface VoiceGenerationOptions {
 
 function sortUnique(values: number[]): number[] {
   return [...new Set(values)].sort((a, b) => a - b);
-}
-
-function buildNote(idPrefix: string, index: number, midi: number, durationTicks: number, tiedFromPrevious?: boolean, tiedToNext?: boolean): NoteEvent {
-  return { id: `${idPrefix}-${index}`, midi, startTick: index * durationTicks, durationTicks, tiedFromPrevious, tiedToNext };
-}
-
-function speciesDurations(species: Voice['species'], ticksPerWhole: number): number[] {
-  switch (species) {
-    case 'second':
-      return [ticksPerWhole / 2, ticksPerWhole / 2];
-    case 'third':
-      return [ticksPerWhole / 4, ticksPerWhole / 4, ticksPerWhole / 4, ticksPerWhole / 4];
-    case 'fourth':
-      return [ticksPerWhole, ticksPerWhole];
-    case 'fifth':
-      return [ticksPerWhole / 2, ticksPerWhole / 2, ticksPerWhole / 4, ticksPerWhole / 4];
-    default:
-      return [ticksPerWhole];
-  }
 }
 
 function candidateIsAllowed(midi: number, existing: Voice[], tick: number, voice: Voice, score: CounterpointScore): boolean {
@@ -96,4 +78,3 @@ export function generateVoice(options: VoiceGenerationOptions): Voice {
   }
   return { ...voice, notes };
 }
-
