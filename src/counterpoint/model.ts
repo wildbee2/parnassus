@@ -1,4 +1,5 @@
 import type { ModeName } from '../music/mode';
+import type { InstrumentPreset } from '../music/instruments';
 
 export type Species = 'first' | 'second' | 'third' | 'fourth' | 'fifth';
 export type GenerationStyle = 'strict' | 'humanLike';
@@ -28,6 +29,7 @@ export interface Voice {
   name: string;
   role: 'cantus' | 'counterpoint';
   species?: Species;
+  instrument?: InstrumentPreset;
   rangeMinMidi: number;
   rangeMaxMidi: number;
   notes: NoteEvent[];

@@ -2,43 +2,14 @@ import * as Tone from 'tone';
 import { useEffect, useRef, useState } from 'react';
 import type { CounterpointScore } from '../../counterpoint/model';
 import { Button, Card, CardBody, CardHeader, Input, Label } from '../ui';
-
-type InstrumentPreset = 'grand_piano' | 'organ' | 'trumpet' | 'pipe_organ';
-
-function createInstrument(preset: InstrumentPreset): Tone.PolySynth {
-  const synth = new Tone.PolySynth().toDestination();
-  const voice = synth as unknown as {
-    set?: (options: Record<string, unknown>) => void;
-  };
-  if (preset === 'pipe_organ') {
-    voice.set?.({
-      oscillator: { type: 'sine' },
-      envelope: { attack: 0.08, decay: 0.12, sustain: 0.55, release: 0.45 }
-    });
-  } else if (preset === 'organ') {
-    voice.set?.({
-      oscillator: { type: 'sawtooth4' },
-      envelope: { attack: 0.05, decay: 0.14, sustain: 0.58, release: 0.35 }
-    });
-  } else if (preset === 'trumpet') {
-    voice.set?.({
-      oscillator: { type: 'sawtooth' },
-      envelope: { attack: 0.03, decay: 0.16, sustain: 0.45, release: 0.2 }
-    });
-  } else {
-    voice.set?.({
-      oscillator: { type: 'triangle' },
-      envelope: { attack: 0.01, decay: 0.22, sustain: 0.3, release: 0.25 }
-    });
-  }
-  return synth;
-}
+import type { InstrumentPreset } from '../../music/instruments';
+import { createInstrument, INSTRUMENT_PRESETS } from '../../music/instruments';
 
 export function PlaybackControls({ score }: { score: CounterpointScore }) {
   const [playing, setPlaying] = useState(false);
   const [tempo, setTempo] = useState(score.tempoBpm);
   const [instrument, setInstrument] = useState<InstrumentPreset>('grand_piano');
-  const synthRef = useRef<Tone.PolySynth | null>(null);
+  const synthRef = useRef<Partial<Record<InstrumentPreset, Tone.PolySynth>>>({});
   const timerRefs = useRef<number[]>([]);
   const stopTimerRef = useRef<number | null>(null);
 
@@ -51,7 +22,11 @@ export function PlaybackControls({ score }: { score: CounterpointScore }) {
       window.clearTimeout(stopTimerRef.current);
       stopTimerRef.current = null;
     }
-    synthRef.current?.releaseAll?.();
+    for (const synth of Object.values(synthRef.current)) {
+      synth?.releaseAll?.();
+      synth?.dispose?.();
+    }
+    synthRef.current = {};
     setPlaying(false);
   }
 
@@ -62,14 +37,15 @@ export function PlaybackControls({ score }: { score: CounterpointScore }) {
   async function play() {
     await Tone.start();
     clearPlaybackState();
-    if (!synthRef.current) {
-      synthRef.current = createInstrument(instrument);
-    }
-    const synth = synthRef.current;
     const beatsPerSecond = tempo / 60;
     const secondsPerWhole = 4 / beatsPerSecond;
     const endTick = Math.max(...score.voices.flatMap((voice) => voice.notes.map((note) => note.startTick + note.durationTicks)), score.ticksPerWhole);
     for (const voice of score.voices) {
+      const voiceInstrument = voice.instrument ?? instrument;
+      if (!synthRef.current[voiceInstrument]) {
+        synthRef.current[voiceInstrument] = createInstrument(voiceInstrument);
+      }
+      const synth = synthRef.current[voiceInstrument]!;
       for (const note of voice.notes) {
         const startDelay = (note.startTick / score.ticksPerWhole) * secondsPerWhole * 1000;
         const durationSeconds = (note.durationTicks / score.ticksPerWhole) * secondsPerWhole;
@@ -109,15 +85,14 @@ export function PlaybackControls({ score }: { score: CounterpointScore }) {
             value={instrument}
             onChange={(event) => {
               setInstrument(event.target.value as InstrumentPreset);
-              synthRef.current?.dispose?.();
-              synthRef.current = createInstrument(event.target.value as InstrumentPreset);
             }}
             className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
           >
-            <option value="grand_piano">Grand piano</option>
-            <option value="trumpet">Trumpet</option>
-            <option value="organ">Organ</option>
-            <option value="pipe_organ">Pipe organ</option>
+            {INSTRUMENT_PRESETS.map((preset) => (
+              <option key={preset.value} value={preset.value}>
+                {preset.label}
+              </option>
+            ))}
           </select>
         </div>
       </CardBody>

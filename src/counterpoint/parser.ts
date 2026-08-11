@@ -1,5 +1,6 @@
 import { pitchNameToMidi } from '../music/pitch';
 import type { CounterpointScore, NoteEvent, Voice, Species } from './model';
+import type { InstrumentPreset } from '../music/instruments';
 
 export interface ParsedTextScore {
   score: CounterpointScore;
@@ -65,6 +66,6 @@ export function scoreToText(score: CounterpointScore): string {
     .join('\n');
 }
 
-export function makeVoice(id: string, name: string, role: Voice['role'], species: Species | undefined, rangeMinMidi: number, rangeMaxMidi: number): Voice {
-  return { id, name, role, species, rangeMinMidi, rangeMaxMidi, notes: [] };
+export function makeVoice(id: string, name: string, role: Voice['role'], species: Species | undefined, rangeMinMidi: number, rangeMaxMidi: number, instrument?: InstrumentPreset): Voice {
+  return { id, name, role, species, instrument, rangeMinMidi, rangeMaxMidi, notes: [] };
 }

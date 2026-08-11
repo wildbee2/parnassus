@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { GeneratePage } from '../pages/GeneratePage';
 import { EvaluatePage } from '../pages/EvaluatePage';
+import { LabPage } from '../pages/LabPage';
 import { RulesPage } from '../pages/RulesPage';
 import { SettingsPage } from '../pages/SettingsPage';
 
@@ -11,6 +12,7 @@ export function App() {
       <Route path="/playback" element={<GeneratePage />} />
       <Route path="/generate" element={<Navigate to="/playback" replace />} />
       <Route path="/evaluate" element={<EvaluatePage />} />
+      <Route path="/lab" element={<LabPage />} />
       <Route path="/rules" element={<RulesPage />} />
       <Route path="/settings" element={<SettingsPage />} />
       <Route path="/examples" element={<Navigate to="/playback" replace />} />

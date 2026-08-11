@@ -9,6 +9,7 @@ import { exportScoreJson, importScoreJson } from '../../importExport/json';
 const navItems = [
   { to: '/playback', label: 'Example Playback' },
   { to: '/evaluate', label: 'Evaluate' },
+  { to: '/lab', label: 'Lab' },
   { to: '/rules', label: 'Rule Reference' },
   { to: '/settings', label: 'Settings' }
 ];
