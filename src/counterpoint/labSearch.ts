@@ -18,6 +18,7 @@ export interface LabSearchOptions {
   seed?: number;
   instruments?: InstrumentPreset[];
   onAttempt?: (attempt: number, maxAttempts: number) => void;
+  signal?: AbortSignal;
 }
 
 export interface LabSearchResult {
@@ -43,6 +44,24 @@ function buildCounterpointVoice(index: number, species: Species): ReturnType<typ
   return voice;
 }
 
+function trimVoiceToBars(voice: ReturnType<typeof makeVoice>, bars: number, ticksPerWhole: number): ReturnType<typeof makeVoice> {
+  const targetEndTick = bars * ticksPerWhole;
+  const visibleNotes = voice.notes.filter((note) => note.startTick < targetEndTick);
+  const notes = visibleNotes
+    .map((note, index, notesArray) => {
+      const nextStart = notesArray[index + 1]?.startTick ?? targetEndTick;
+      const endTick = Math.min(note.startTick + note.durationTicks, targetEndTick, nextStart);
+      return {
+        ...note,
+        durationTicks: Math.max(0, endTick - note.startTick),
+        tiedToNext: note.tiedToNext && endTick < targetEndTick ? true : undefined
+      };
+    })
+    .filter((note) => note.durationTicks > 0);
+
+  return { ...voice, notes };
+}
+
 function buildScoreFromSeed(options: LabSearchOptions, seed: number): CounterpointScore {
   const rng = new SeededRandom(seed);
   const totalVoices = clampVoiceCount(options.totalVoices);
@@ -62,12 +81,12 @@ function buildScoreFromSeed(options: LabSearchOptions, seed: number): Counterpoi
   });
   cantus.instrument = options.instruments?.[0] ?? 'grand_piano';
 
-  const voices = [cantus];
+  const voices = [trimVoiceToBars(cantus, options.bars, 480)];
   for (let index = 0; index < counterpointCount; index += 1) {
     const species = options.species[index] ?? options.species.at(-1) ?? 'first';
     const voice = buildCounterpointVoice(index, species);
     voice.instrument = options.instruments?.[index + 1] ?? 'grand_piano';
-    voices.push(voice);
+    voices.push(trimVoiceToBars(voice, options.bars, 480));
   }
 
   return {
@@ -87,6 +106,13 @@ function scoreIsComplete(score: CounterpointScore, bars: number): boolean {
   return score.voices.every((voice) => voiceEndTick(voice) >= targetEndTick);
 }
 
+function throwIfAborted(signal?: AbortSignal): void {
+  if (!signal?.aborted) return;
+  const error = new Error('Search aborted');
+  error.name = 'AbortError';
+  throw error;
+}
+
 export async function searchLabCounterpoint(options: LabSearchOptions): Promise<LabSearchResult | null> {
   const maxAttempts = options.maxAttempts ?? 1000;
   const heuristicMode = options.heuristicMode ?? 'humanLike';
@@ -94,6 +120,7 @@ export async function searchLabCounterpoint(options: LabSearchOptions): Promise<
   const attemptRng = new SeededRandom(runSeed ^ 0x5f3759df);
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    throwIfAborted(options.signal);
     options.onAttempt?.(attempt, maxAttempts);
     const attemptSeed = runSeed + attemptRng.int(1_000_000_000) + attempt * 7919;
     let score = buildScoreFromSeed(options, attemptSeed);
@@ -106,7 +133,10 @@ export async function searchLabCounterpoint(options: LabSearchOptions): Promise<
       if (!nextScore) {
         break;
       }
-      score = nextScore;
+      score = {
+        ...nextScore,
+        voices: nextScore.voices.map((voice) => trimVoiceToBars(voice, options.bars, nextScore.ticksPerWhole))
+      };
       steps += 1;
     }
 
@@ -119,6 +149,7 @@ export async function searchLabCounterpoint(options: LabSearchOptions): Promise<
 
     if (attempt % 25 === 0) {
       await new Promise((resolve) => setTimeout(resolve, 0));
+      throwIfAborted(options.signal);
     }
   }
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppShell } from '../components/layout/AppShell';
 import { Badge, Button, Card, CardBody, CardHeader, Input, Label, Select } from '../components/ui';
 import { ScoreGrid } from '../components/notation/ScoreGrid';
@@ -12,14 +12,23 @@ import { INSTRUMENT_PRESETS } from '../music/instruments';
 import { exportScoreJson } from '../importExport/json';
 
 const MODE_OPTIONS: ModeName[] = ['dorian', 'ionian', 'mixolydian', 'aeolian', 'phrygian', 'lydian', 'major', 'natural_minor'];
+const SPECIES_OPTIONS: Species[] = ['first', 'second', 'third', 'fourth', 'fifth'];
+
+function randomSpecies(): Species {
+  return SPECIES_OPTIONS[Math.floor(Math.random() * SPECIES_OPTIONS.length)] ?? 'first';
+}
 
 function resizeSpeciesSelections(totalVoices: number, current: Species[]): Species[] {
   const required = Math.max(1, totalVoices - 1);
   const next = current.slice(0, required);
   while (next.length < required) {
-    next.push('first');
+    next.push(randomSpecies());
   }
   return next;
+}
+
+function createSpeciesSelections(totalVoices: number): Species[] {
+  return Array.from({ length: Math.max(1, totalVoices - 1) }, () => randomSpecies());
 }
 
 function resizeInstrumentSelections(totalVoices: number, current: InstrumentPreset[]): InstrumentPreset[] {
@@ -42,17 +51,18 @@ function downloadJson(filename: string, contents: string) {
 }
 
 export function LabPage() {
-  const { score, setScore, setSelectedNoteId, setSelectedVoiceId } = useAppStore();
-  const [totalVoices, setTotalVoices] = useState(2);
+  const { score, setScore, updateScore, setSelectedNoteId, setSelectedVoiceId } = useAppStore();
+  const [totalVoices, setTotalVoices] = useState(3);
   const [bars, setBars] = useState(8);
-  const [mode, setMode] = useState<ModeName>('dorian');
-  const [speciesSelections, setSpeciesSelections] = useState<Species[]>(['first']);
-  const [instrumentSelections, setInstrumentSelections] = useState<InstrumentPreset[]>(['grand_piano', 'grand_piano']);
+  const [mode, setMode] = useState<ModeName>('mixolydian');
+  const [speciesSelections, setSpeciesSelections] = useState<Species[]>(() => createSpeciesSelections(3));
+  const [instrumentSelections, setInstrumentSelections] = useState<InstrumentPreset[]>(() => Array.from({ length: 3 }, () => 'grand_piano'));
   const [isSearching, setIsSearching] = useState(false);
   const [message, setMessage] = useState<string>('Configure the lab search and run a simulation.');
   const [progress, setProgress] = useState<string>('');
   const [labResult, setLabResult] = useState<string | null>(null);
   const [runSeed, setRunSeed] = useState<number | null>(null);
+  const searchAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     setSpeciesSelections((current) => resizeSpeciesSelections(totalVoices, current));
@@ -61,6 +71,10 @@ export function LabPage() {
   useEffect(() => {
     setInstrumentSelections((current) => resizeInstrumentSelections(totalVoices, current));
   }, [totalVoices]);
+
+  useEffect(() => () => {
+    searchAbortRef.current?.abort();
+  }, []);
 
   const cpCount = Math.max(1, totalVoices - 1);
 
@@ -74,6 +88,10 @@ export function LabPage() {
           <CardBody className="space-y-2 text-sm text-slate-600">
             <p>This page runs a repeated suggestion loop against a random cantus firmus until it finds a score that passes the current human-like search filter.</p>
             <p>The lab always keeps the core counterpoint checks active. Only the softer stylistic rules are relaxed during search.</p>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+              Better odds: Mixolydian with first or second species, Dorian with first or second species, and Ionian or Aeolian with first species.
+              This is inferred from the generator behavior, not guaranteed.
+            </div>
           </CardBody>
         </Card>
         <Card>
@@ -92,6 +110,9 @@ export function LabPage() {
   );
 
   async function runLabSearch() {
+    searchAbortRef.current?.abort();
+    const controller = new AbortController();
+    searchAbortRef.current = controller;
     setIsSearching(true);
     const nextRunSeed = Math.floor(Math.random() * 1_000_000_000);
     setRunSeed(nextRunSeed);
@@ -110,10 +131,16 @@ export function LabPage() {
         instruments: instrumentSelections,
         maxAttempts,
         seed: nextRunSeed,
+        signal: controller.signal,
         onAttempt: (attempt, maxAttempts) => {
           setProgress(`Attempt ${attempt} of ${maxAttempts}`);
         }
       });
+
+      if (controller.signal.aborted) {
+        setMessage('Search paused.');
+        return;
+      }
 
       if (!result) {
         setMessage(`No valid patterns were found after ${maxAttempts} attempts.`);
@@ -125,8 +152,36 @@ export function LabPage() {
       setSelectedVoiceId(undefined);
       setLabResult(exportScoreJson(result.score));
       setMessage(`Found a valid pattern after ${result.attempts} attempts using seed ${result.seed}.`);
+    } catch (error) {
+      if ((error as Error).name === 'AbortError') {
+        setMessage('Search paused.');
+        return;
+      }
+      throw error;
     } finally {
+      if (searchAbortRef.current === controller) {
+        searchAbortRef.current = null;
+      }
       setIsSearching(false);
+    }
+  }
+
+  function stopLabSearch() {
+    searchAbortRef.current?.abort();
+  }
+
+  function updateInstrument(index: number, instrument: InstrumentPreset) {
+    setInstrumentSelections((current) => {
+      const next = [...current];
+      next[index] = instrument;
+      return resizeInstrumentSelections(totalVoices, next);
+    });
+
+    const nextScore = structuredClone(score);
+    if (nextScore.voices[index]) {
+      nextScore.voices[index].instrument = instrument;
+      updateScore(() => nextScore);
+      setLabResult(exportScoreJson(nextScore));
     }
   }
 
@@ -178,6 +233,9 @@ export function LabPage() {
               <Button onClick={runLabSearch} disabled={isSearching} className="w-full">
                 {isSearching ? 'Running...' : 'Run simulation'}
               </Button>
+              <Button onClick={stopLabSearch} disabled={!isSearching} variant="secondary" className="w-full">
+                Stop
+              </Button>
               <Button onClick={exportLabResult} disabled={!labResult || isSearching} variant="secondary" className="w-full">
                 Export Lab JSON
               </Button>
@@ -197,11 +255,7 @@ export function LabPage() {
                   <Label>{isCantus ? 'Cantus firmus' : `Counterpoint ${index}`}</Label>
                   <Select
                     value={instrumentSelections[index] ?? 'grand_piano'}
-                    onChange={(event) => {
-                      const next = [...instrumentSelections];
-                      next[index] = event.target.value as InstrumentPreset;
-                      setInstrumentSelections(resizeInstrumentSelections(totalVoices, next));
-                    }}
+                    onChange={(event) => updateInstrument(index, event.target.value as InstrumentPreset)}
                     disabled={isSearching}
                   >
                     {INSTRUMENT_PRESETS.map((preset) => (

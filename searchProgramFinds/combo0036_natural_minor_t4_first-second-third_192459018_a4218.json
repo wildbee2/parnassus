@@ -1,0 +1,249 @@
+{
+  "id": "sim-combo0036_natural_minor_t4_first-second-third_a4218",
+  "title": "combo0036_natural_minor_t4_first-second-third_a4218",
+  "tonicPitchClass": 4,
+  "mode": "natural_minor",
+  "ticksPerWhole": 480,
+  "tempoBpm": 96,
+  "seed": 192459018,
+  "voices": [
+    {
+      "id": "cf",
+      "name": "Cantus Firmus",
+      "role": "cantus",
+      "rangeMinMidi": 50,
+      "rangeMaxMidi": 69,
+      "notes": [
+        {
+          "id": "cf-0",
+          "midi": 64,
+          "startTick": 0,
+          "durationTicks": 480
+        },
+        {
+          "id": "cf-1",
+          "midi": 62,
+          "startTick": 480,
+          "durationTicks": 480
+        },
+        {
+          "id": "cf-2",
+          "midi": 60,
+          "startTick": 960,
+          "durationTicks": 480
+        },
+        {
+          "id": "cf-3",
+          "midi": 64,
+          "startTick": 1440,
+          "durationTicks": 480
+        }
+      ],
+      "instrument": "organ"
+    },
+    {
+      "id": "cp1",
+      "name": "Counterpoint 1",
+      "role": "counterpoint",
+      "species": "first",
+      "rangeMinMidi": 55,
+      "rangeMaxMidi": 76,
+      "position": "above",
+      "notes": [
+        {
+          "id": "cp1-0",
+          "midi": 67,
+          "startTick": 0,
+          "durationTicks": 480
+        },
+        {
+          "id": "cp1-1",
+          "midi": 71,
+          "startTick": 480,
+          "durationTicks": 480
+        },
+        {
+          "id": "cp1-2",
+          "midi": 64,
+          "startTick": 960,
+          "durationTicks": 480
+        },
+        {
+          "id": "cp1-3",
+          "midi": 64,
+          "startTick": 1440,
+          "durationTicks": 480
+        }
+      ],
+      "instrument": "pipe_organ"
+    },
+    {
+      "id": "cp2",
+      "name": "Counterpoint 2",
+      "role": "counterpoint",
+      "species": "second",
+      "rangeMinMidi": 48,
+      "rangeMaxMidi": 67,
+      "position": "below",
+      "notes": [
+        {
+          "id": "cp2-0",
+          "midi": 60,
+          "startTick": 0,
+          "durationTicks": 240
+        },
+        {
+          "id": "cp2-1",
+          "midi": 59,
+          "startTick": 240,
+          "durationTicks": 240
+        },
+        {
+          "id": "cp2-2",
+          "midi": 59,
+          "startTick": 480,
+          "durationTicks": 240
+        },
+        {
+          "id": "cp2-3",
+          "midi": 59,
+          "startTick": 720,
+          "durationTicks": 240
+        },
+        {
+          "id": "cp2-4",
+          "midi": 60,
+          "startTick": 960,
+          "durationTicks": 240
+        },
+        {
+          "id": "cp2-5",
+          "midi": 57,
+          "startTick": 1200,
+          "durationTicks": 240
+        },
+        {
+          "id": "cp2-6",
+          "midi": 52,
+          "startTick": 1440,
+          "durationTicks": 240
+        },
+        {
+          "id": "cp2-7",
+          "midi": 52,
+          "startTick": 1680,
+          "durationTicks": 240
+        }
+      ],
+      "instrument": "organ"
+    },
+    {
+      "id": "cp3",
+      "name": "Counterpoint 3",
+      "role": "counterpoint",
+      "species": "third",
+      "rangeMinMidi": 48,
+      "rangeMaxMidi": 67,
+      "position": "below",
+      "notes": [
+        {
+          "id": "cp3-0",
+          "midi": 60,
+          "startTick": 0,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp3-1",
+          "midi": 60,
+          "startTick": 120,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp3-2",
+          "midi": 60,
+          "startTick": 240,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp3-3",
+          "midi": 60,
+          "startTick": 360,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp3-4",
+          "midi": 62,
+          "startTick": 480,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp3-5",
+          "midi": 59,
+          "startTick": 600,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp3-6",
+          "midi": 60,
+          "startTick": 720,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp3-7",
+          "midi": 57,
+          "startTick": 840,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp3-8",
+          "midi": 57,
+          "startTick": 960,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp3-9",
+          "midi": 54,
+          "startTick": 1080,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp3-10",
+          "midi": 54,
+          "startTick": 1200,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp3-11",
+          "midi": 54,
+          "startTick": 1320,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp3-12",
+          "midi": 52,
+          "startTick": 1440,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp3-13",
+          "midi": 52,
+          "startTick": 1560,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp3-14",
+          "midi": 52,
+          "startTick": 1680,
+          "durationTicks": 120
+        },
+        {
+          "id": "cp3-15",
+          "midi": 52,
+          "startTick": 1800,
+          "durationTicks": 120
+        }
+      ],
+      "instrument": "pipe_organ"
+    }
+  ]
+}

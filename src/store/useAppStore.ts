@@ -59,8 +59,10 @@ export interface AppState {
 }
 
 function makeScore(): CounterpointScore {
+  const speciesPool: Species[] = ['first', 'second', 'third', 'fourth', 'fifth'];
+  const pickRandomSpecies = (): Species => speciesPool[Math.floor(Math.random() * speciesPool.length)] ?? 'first';
   const cf = generateCantusFirmus({
-    mode: 'dorian',
+    mode: 'mixolydian',
     tonicPitchClass: 2,
     length: 10,
     rangeMinMidi: 50,
@@ -71,7 +73,7 @@ function makeScore(): CounterpointScore {
     id: crypto.randomUUID(),
     title: 'Untitled Exercise',
     tonicPitchClass: 2,
-    mode: 'dorian',
+    mode: 'mixolydian',
     ticksPerWhole: 480,
     voices: [
       cf,
@@ -79,7 +81,7 @@ function makeScore(): CounterpointScore {
         id: 'cp1',
         name: 'Counterpoint 1',
         role: 'counterpoint',
-        species: 'first',
+        species: pickRandomSpecies(),
         rangeMinMidi: 55,
         rangeMaxMidi: 76,
         position: 'above',
@@ -89,7 +91,7 @@ function makeScore(): CounterpointScore {
         id: 'cp2',
         name: 'Counterpoint 2',
         role: 'counterpoint',
-        species: 'second',
+        species: pickRandomSpecies(),
         rangeMinMidi: 48,
         rangeMaxMidi: 67,
         position: 'below',
@@ -117,8 +119,8 @@ const defaultSettings: AppSettings = {
   cadenceStrictness: 0.9,
   musicaFicta: false,
   fourthAboveBassDissonant: true,
-  strictnessProfile: 'strict',
-  heuristicMode: 'strict'
+  strictnessProfile: 'balanced',
+  heuristicMode: 'humanLike'
 };
 
 export const useAppStore = create<AppState>()(

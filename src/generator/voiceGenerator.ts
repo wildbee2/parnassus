@@ -5,7 +5,7 @@ import type { CounterpointScore, GenerationStyle, NoteEvent, Voice } from '../co
 import { SeededRandom } from './seededRandom';
 import { scoreCandidate } from './phraseScoring';
 import { generateCandidates } from './candidateGenerator';
-import { speciesDurations } from '../counterpoint/species';
+import { speciesDurationAtIndex } from '../counterpoint/species';
 
 export interface VoiceGenerationOptions {
   score: CounterpointScore;
@@ -35,13 +35,15 @@ export function generateVoice(options: VoiceGenerationOptions): Voice {
   const rng = new SeededRandom(seed);
   const cf = score.voices.find((v) => v.role === 'cantus');
   const source = cf ?? score.voices[0];
-  const noteCount = source.notes.length;
-  const durations = speciesDurations(voice.species, score.ticksPerWhole);
+  const targetEndTick = source.notes.reduce((maxTick, note) => Math.max(maxTick, note.startTick + note.durationTicks), 0);
   const notes: NoteEvent[] = [];
   let previousMidi = (voice.position === 'below' ? voice.rangeMaxMidi : voice.rangeMinMidi) + 0;
-  for (let i = 0; i < noteCount; i += 1) {
-    const tick = source.notes[i]?.startTick ?? i * score.ticksPerWhole;
-    const cfMidi = source.notes[i]?.midi;
+  let noteIndex = 0;
+  let tick = 0;
+
+  while (tick < targetEndTick) {
+    const cfNote = source.notes.find((candidate) => candidate.startTick <= tick && tick < candidate.startTick + candidate.durationTicks) ?? source.notes[source.notes.length - 1];
+    const cfMidi = cfNote?.midi;
     const candidates = generateCandidates({
       score,
       voice,
@@ -71,13 +73,13 @@ export function generateVoice(options: VoiceGenerationOptions): Voice {
       if (heuristicMode !== 'humanLike' || ranked.length === 1) {
         return ranked[0].midi;
       }
-      if (i === 0) {
+      if (noteIndex === 0) {
         return ranked[0].midi;
       }
       const top = ranked.slice(0, Math.min(5, ranked.length));
-      const shortlist = i === 1 ? top.slice(0, Math.min(3, top.length)) : top;
+      const shortlist = noteIndex === 1 ? top.slice(0, Math.min(3, top.length)) : top;
       const floor = shortlist[shortlist.length - 1].score;
-      const weights = shortlist.map((entry) => Math.max(0.1, entry.score - floor + (i === 1 ? 1 : 0.5)));
+      const weights = shortlist.map((entry) => Math.max(0.1, entry.score - floor + (noteIndex === 1 ? 1 : 0.5)));
       const total = weights.reduce((sum, weight) => sum + weight, 0);
       let roll = rng.next() * total;
       for (let index = 0; index < shortlist.length; index += 1) {
@@ -86,16 +88,18 @@ export function generateVoice(options: VoiceGenerationOptions): Voice {
       }
       return shortlist[0].midi;
     })();
-    const durationTicks = durations[i % durations.length];
+    const durationTicks = Math.min(speciesDurationAtIndex(voice.species, noteIndex, score.ticksPerWhole), targetEndTick - tick);
     notes.push({
-      id: `${voice.id}-${i}`,
+      id: `${voice.id}-${noteIndex}`,
       midi: chosen,
       startTick: tick,
       durationTicks,
-      tiedFromPrevious: voice.species === 'fourth' && i > 0 ? true : undefined,
-      tiedToNext: voice.species === 'fourth' && i < noteCount - 1 ? true : undefined
+      tiedFromPrevious: voice.species === 'fourth' && noteIndex > 0 ? true : undefined,
+      tiedToNext: voice.species === 'fourth' && tick + durationTicks < targetEndTick ? true : undefined
     });
     previousMidi = chosen;
+    tick += durationTicks;
+    noteIndex += 1;
   }
   return { ...voice, notes };
 }

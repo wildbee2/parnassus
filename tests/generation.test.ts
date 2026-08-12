@@ -1,8 +1,10 @@
 import { describe, expect, test } from 'vitest';
 import { generateCantusFirmus } from '../src/generator/cantusGenerator';
+import { generateVoice } from '../src/generator/voiceGenerator';
 import { generateCounterpointScore } from '../src/generator';
 import { evaluateCounterpoint } from '../src/counterpoint/evaluator';
 import type { CounterpointScore } from '../src/counterpoint/model';
+import { voiceEndTick } from '../src/counterpoint/species';
 
 function baseGenerateScore(): CounterpointScore {
   return {
@@ -72,5 +74,10 @@ describe('generation', () => {
       }
     }
   });
-});
 
+  test('generated voices span the full score length', () => {
+    const score = baseGenerateScore();
+    const voice = generateVoice({ score, voice: score.voices[1], seed: 44, heuristicMode: 'humanLike' });
+    expect(voiceEndTick(voice)).toBe(voiceEndTick(score.voices[0]));
+  });
+});
