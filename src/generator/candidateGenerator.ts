@@ -37,7 +37,6 @@ export function generateCandidates(context: CandidateContext): Candidate[] {
     const interval = cfMidi === undefined ? undefined : classifyIntervalSemitones(midi - cfMidi, true);
     const consonant = interval ? interval !== 'dissonant' : true;
     if (voice.species === 'first' && !consonant) continue;
-    if (isFinal && cfMidi !== undefined && midiToPitchClass(midi) !== score.tonicPitchClass) continue;
     if (previousMidi !== undefined) {
       const leap = Math.abs(midi - previousMidi);
       if (leap > 12) continue;
@@ -46,4 +45,3 @@ export function generateCandidates(context: CandidateContext): Candidate[] {
   }
   return candidates;
 }
-

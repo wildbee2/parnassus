@@ -20,10 +20,7 @@ import type {
 type NoteAtTick = { voice: Voice; note: NoteEvent };
 const HUMAN_LIKE_SOFT_RULE_IDS = new Set([
   'MEL_REPEATED_NOTES',
-  'MEL_CLIMAX',
-  'HAR_VOICE_OVERLAP',
-  'TEX_DUPLICATED_LINE',
-  'TEX_EXCESSIVE_PARALLEL_MOTION'
+  'MEL_CLIMAX'
 ]);
 
 const severityFor = (ruleId: string) => {
@@ -76,7 +73,10 @@ const ruleViolation = (
 
 function filterViolationsByStyle(violations: RuleViolation[], heuristicMode: GenerationStyle = 'strict'): RuleViolation[] {
   if (heuristicMode === 'humanLike') {
-    return violations.filter((violation) => !HUMAN_LIKE_SOFT_RULE_IDS.has(violation.ruleId));
+    return violations.filter((violation) => {
+      if (!HUMAN_LIKE_SOFT_RULE_IDS.has(violation.ruleId)) return true;
+      return false;
+    });
   }
   return violations;
 }
@@ -118,6 +118,32 @@ function isOuterPair(score: CounterpointScore, a: Voice, b: Voice): boolean {
 
 function averageMidi(voice: Voice): number {
   return voice.notes.length ? voice.notes.reduce((sum, note) => sum + note.midi, 0) / voice.notes.length : 0;
+}
+
+function sortedOuterVoiceIds(score: CounterpointScore): { topId?: string; bottomId?: string } {
+  const sorted = [...score.voices].sort((a, b) => averageMidi(b) - averageMidi(a));
+  return {
+    topId: sorted[0]?.id,
+    bottomId: sorted[sorted.length - 1]?.id
+  };
+}
+
+function isInnerVoiceViolation(score: CounterpointScore, voiceIds: string[]): boolean {
+  if (!voiceIds.length) return false;
+  const { topId, bottomId } = sortedOuterVoiceIds(score);
+  return voiceIds.every((id) => id !== topId && id !== bottomId);
+}
+
+function softenInnerVoiceViolations(score: CounterpointScore, violations: RuleViolation[]): RuleViolation[] {
+  return violations.filter((violation) => {
+    if (violation.ruleId === 'HAR_VOICE_OVERLAP' || violation.ruleId === 'HAR_DIRECT_5' || violation.ruleId === 'HAR_DIRECT_8') {
+      return !isInnerVoiceViolation(score, violation.voiceIds);
+    }
+    if (violation.ruleId === 'HAR_PARALLEL_5' || violation.ruleId === 'HAR_PARALLEL_8' || violation.ruleId === 'HAR_PARALLEL_1' || violation.ruleId === 'TEX_EXCESSIVE_PARALLEL_MOTION' || violation.ruleId === 'TEX_DUPLICATED_LINE') {
+      return !isInnerVoiceViolation(score, violation.voiceIds);
+    }
+    return true;
+  });
 }
 
 function voiceRank(score: CounterpointScore, voice: Voice): number {
@@ -579,7 +605,8 @@ export const RULES: CounterpointRule[] = [
 ];
 
 export function evaluateScore(score: CounterpointScore, heuristicMode: GenerationStyle = 'strict'): { violations: RuleViolation[]; cadence: ReturnType<typeof analyzeCadence> } {
-  const violations = filterViolationsByStyle(RULES.flatMap((rule) => rule.evaluate({ score })), heuristicMode);
+  const rawViolations = RULES.flatMap((rule) => rule.evaluate({ score }));
+  const violations = heuristicMode === 'humanLike' ? softenInnerVoiceViolations(score, filterViolationsByStyle(rawViolations, heuristicMode)) : rawViolations;
   return { violations, cadence: analyzeCadence(score) };
 }
 
