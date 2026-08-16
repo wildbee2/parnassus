@@ -1,0 +1,536 @@
+{
+  "updatedAt": "2026-08-15T16:40:55.854Z",
+  "config": {
+    "seed": 1337,
+    "centers": 0,
+    "topResults": 50,
+    "radius": 64,
+    "step": 1,
+    "attemptsPerSeed": 2500,
+    "totalVoices": 4,
+    "bars": 4,
+    "mode": "mixolydian",
+    "species": [
+      "second",
+      "first",
+      "fifth"
+    ],
+    "mutateMode": false,
+    "mutateSpecies": false,
+    "strategy": "best",
+    "outputDir": "seedDensityFinds"
+  },
+  "topCenters": [
+    {
+      "centerSeed": 659710156,
+      "tested": 129,
+      "hits": 3,
+      "hitRate": 0.023255813953488372,
+      "bestWinningSeed": 1194091420,
+      "bestAttempt": 611,
+      "avgAttempt": 1021.6666666666666
+    },
+    {
+      "centerSeed": 790841599,
+      "tested": 129,
+      "hits": 3,
+      "hitRate": 0.023255813953488372,
+      "bestWinningSeed": 1591843863,
+      "bestAttempt": 1093,
+      "avgAttempt": 1672
+    },
+    {
+      "centerSeed": 790841997,
+      "tested": 129,
+      "hits": 2,
+      "hitRate": 0.015503875968992248,
+      "bestWinningSeed": 1478216474,
+      "bestAttempt": 706,
+      "avgAttempt": 921.5
+    },
+    {
+      "centerSeed": 106108701,
+      "tested": 129,
+      "hits": 2,
+      "hitRate": 0.015503875968992248,
+      "bestWinningSeed": 468411805,
+      "bestAttempt": 1039,
+      "avgAttempt": 1138.5
+    },
+    {
+      "centerSeed": 659710355,
+      "tested": 129,
+      "hits": 2,
+      "hitRate": 0.015503875968992248,
+      "bestWinningSeed": 679962476,
+      "bestAttempt": 80,
+      "avgAttempt": 1182.5
+    },
+    {
+      "centerSeed": 131598741,
+      "tested": 129,
+      "hits": 2,
+      "hitRate": 0.015503875968992248,
+      "bestWinningSeed": 921138111,
+      "bestAttempt": 665,
+      "avgAttempt": 1217
+    },
+    {
+      "centerSeed": 921137933,
+      "tested": 129,
+      "hits": 2,
+      "hitRate": 0.015503875968992248,
+      "bestWinningSeed": 1543351246,
+      "bestAttempt": 892,
+      "avgAttempt": 1304.5
+    },
+    {
+      "centerSeed": 1337,
+      "tested": 129,
+      "hits": 2,
+      "hitRate": 0.015503875968992248,
+      "bestWinningSeed": 790841709,
+      "bestAttempt": 376,
+      "avgAttempt": 1328.5
+    },
+    {
+      "centerSeed": 790842856,
+      "tested": 129,
+      "hits": 2,
+      "hitRate": 0.015503875968992248,
+      "bestWinningSeed": 1388453704,
+      "bestAttempt": 937,
+      "avgAttempt": 1594
+    },
+    {
+      "centerSeed": 921138179,
+      "tested": 129,
+      "hits": 2,
+      "hitRate": 0.015503875968992248,
+      "bestWinningSeed": 1220701583,
+      "bestAttempt": 1773,
+      "avgAttempt": 1990.5
+    },
+    {
+      "centerSeed": 790841814,
+      "tested": 129,
+      "hits": 2,
+      "hitRate": 0.015503875968992248,
+      "bestWinningSeed": 1131598652,
+      "bestAttempt": 1933,
+      "avgAttempt": 2141.5
+    },
+    {
+      "centerSeed": 790841857,
+      "tested": 129,
+      "hits": 2,
+      "hitRate": 0.015503875968992248,
+      "bestWinningSeed": 1131598652,
+      "bestAttempt": 1933,
+      "avgAttempt": 2141.5
+    },
+    {
+      "centerSeed": 921138083,
+      "tested": 129,
+      "hits": 2,
+      "hitRate": 0.015503875968992248,
+      "bestWinningSeed": 1279825540,
+      "bestAttempt": 2121,
+      "avgAttempt": 2164.5
+    },
+    {
+      "centerSeed": 921138114,
+      "tested": 129,
+      "hits": 2,
+      "hitRate": 0.015503875968992248,
+      "bestWinningSeed": 1279825540,
+      "bestAttempt": 2121,
+      "avgAttempt": 2164.5
+    },
+    {
+      "centerSeed": 659708347,
+      "tested": 129,
+      "hits": 2,
+      "hitRate": 0.015503875968992248,
+      "bestWinningSeed": 782654218,
+      "bestAttempt": 2233,
+      "avgAttempt": 2288.5
+    },
+    {
+      "centerSeed": 659711417,
+      "tested": 129,
+      "hits": 1,
+      "hitRate": 0.007751937984496124,
+      "bestWinningSeed": 795719556,
+      "bestAttempt": 425,
+      "avgAttempt": 425
+    },
+    {
+      "centerSeed": 131598655,
+      "tested": 129,
+      "hits": 1,
+      "hitRate": 0.007751937984496124,
+      "bestWinningSeed": 921138111,
+      "bestAttempt": 665,
+      "avgAttempt": 665
+    },
+    {
+      "centerSeed": 790853143,
+      "tested": 129,
+      "hits": 1,
+      "hitRate": 0.007751937984496124,
+      "bestWinningSeed": 921149672,
+      "bestAttempt": 734,
+      "avgAttempt": 734
+    },
+    {
+      "centerSeed": 921077350,
+      "tested": 129,
+      "hits": 1,
+      "hitRate": 0.007751937984496124,
+      "bestWinningSeed": 1123184884,
+      "bestAttempt": 853,
+      "avgAttempt": 853
+    },
+    {
+      "centerSeed": 790843060,
+      "tested": 129,
+      "hits": 1,
+      "hitRate": 0.007751937984496124,
+      "bestWinningSeed": 1781163456,
+      "bestAttempt": 1696,
+      "avgAttempt": 1696
+    },
+    {
+      "centerSeed": 126024332,
+      "tested": 129,
+      "hits": 1,
+      "hitRate": 0.007751937984496124,
+      "bestWinningSeed": 682658652,
+      "bestAttempt": 1855,
+      "avgAttempt": 1855
+    },
+    {
+      "centerSeed": 106111709,
+      "tested": 129,
+      "hits": 0,
+      "hitRate": 0
+    },
+    {
+      "centerSeed": 106111717,
+      "tested": 129,
+      "hits": 0,
+      "hitRate": 0
+    },
+    {
+      "centerSeed": 106132213,
+      "tested": 129,
+      "hits": 0,
+      "hitRate": 0
+    },
+    {
+      "centerSeed": 106132381,
+      "tested": 129,
+      "hits": 0,
+      "hitRate": 0
+    },
+    {
+      "centerSeed": 126022468,
+      "tested": 129,
+      "hits": 0,
+      "hitRate": 0
+    },
+    {
+      "centerSeed": 659710512,
+      "tested": 129,
+      "hits": 0,
+      "hitRate": 0
+    },
+    {
+      "centerSeed": 790841463,
+      "tested": 129,
+      "hits": 0,
+      "hitRate": 0
+    },
+    {
+      "centerSeed": 790841476,
+      "tested": 129,
+      "hits": 0,
+      "hitRate": 0
+    },
+    {
+      "centerSeed": 790841704,
+      "tested": 129,
+      "hits": 0,
+      "hitRate": 0
+    },
+    {
+      "centerSeed": 790841713,
+      "tested": 129,
+      "hits": 0,
+      "hitRate": 0
+    },
+    {
+      "centerSeed": 790841725,
+      "tested": 129,
+      "hits": 0,
+      "hitRate": 0
+    },
+    {
+      "centerSeed": 790841751,
+      "tested": 129,
+      "hits": 0,
+      "hitRate": 0
+    },
+    {
+      "centerSeed": 921078879,
+      "tested": 129,
+      "hits": 0,
+      "hitRate": 0
+    },
+    {
+      "centerSeed": 921078900,
+      "tested": 129,
+      "hits": 0,
+      "hitRate": 0
+    },
+    {
+      "centerSeed": 921078913,
+      "tested": 129,
+      "hits": 0,
+      "hitRate": 0
+    },
+    {
+      "centerSeed": 921078947,
+      "tested": 129,
+      "hits": 0,
+      "hitRate": 0
+    }
+  ],
+  "topWinningSeeds": [
+    {
+      "winningSeed": 1659710533,
+      "hits": 3,
+      "bestAttempt": 2208,
+      "avgAttempt": 2208,
+      "lastCenterSeed": 921138122
+    },
+    {
+      "winningSeed": 921138111,
+      "hits": 2,
+      "bestAttempt": 665,
+      "avgAttempt": 665,
+      "lastCenterSeed": 131598683
+    },
+    {
+      "winningSeed": 1131598652,
+      "hits": 2,
+      "bestAttempt": 1933,
+      "avgAttempt": 1933,
+      "lastCenterSeed": 790841827
+    },
+    {
+      "winningSeed": 1279825540,
+      "hits": 2,
+      "bestAttempt": 2121,
+      "avgAttempt": 2121,
+      "lastCenterSeed": 921138056
+    },
+    {
+      "winningSeed": 1306702135,
+      "hits": 2,
+      "bestAttempt": 2350,
+      "avgAttempt": 2350,
+      "lastCenterSeed": 790841878
+    },
+    {
+      "winningSeed": 679962476,
+      "hits": 1,
+      "bestAttempt": 80,
+      "avgAttempt": 80,
+      "lastCenterSeed": 659710351
+    },
+    {
+      "winningSeed": 790841709,
+      "hits": 1,
+      "bestAttempt": 376,
+      "avgAttempt": 376,
+      "lastCenterSeed": 1304
+    },
+    {
+      "winningSeed": 795719556,
+      "hits": 1,
+      "bestAttempt": 425,
+      "avgAttempt": 425,
+      "lastCenterSeed": 659711412
+    },
+    {
+      "winningSeed": 1194091420,
+      "hits": 1,
+      "bestAttempt": 611,
+      "avgAttempt": 611,
+      "lastCenterSeed": 659710151
+    },
+    {
+      "winningSeed": 1478216474,
+      "hits": 1,
+      "bestAttempt": 706,
+      "avgAttempt": 706,
+      "lastCenterSeed": 790841968
+    },
+    {
+      "winningSeed": 921149672,
+      "hits": 1,
+      "bestAttempt": 734,
+      "avgAttempt": 734,
+      "lastCenterSeed": 790853093
+    },
+    {
+      "winningSeed": 1123184884,
+      "hits": 1,
+      "bestAttempt": 853,
+      "avgAttempt": 853,
+      "lastCenterSeed": 921077338
+    },
+    {
+      "winningSeed": 1543351246,
+      "hits": 1,
+      "bestAttempt": 892,
+      "avgAttempt": 892,
+      "lastCenterSeed": 921137886
+    },
+    {
+      "winningSeed": 1388453704,
+      "hits": 1,
+      "bestAttempt": 937,
+      "avgAttempt": 937,
+      "lastCenterSeed": 790842859
+    },
+    {
+      "winningSeed": 1639339852,
+      "hits": 1,
+      "bestAttempt": 967,
+      "avgAttempt": 967,
+      "lastCenterSeed": 659710203
+    },
+    {
+      "winningSeed": 468411805,
+      "hits": 1,
+      "bestAttempt": 1039,
+      "avgAttempt": 1039,
+      "lastCenterSeed": 106108721
+    },
+    {
+      "winningSeed": 1591843863,
+      "hits": 1,
+      "bestAttempt": 1093,
+      "avgAttempt": 1093,
+      "lastCenterSeed": 790841617
+    },
+    {
+      "winningSeed": 888471531,
+      "hits": 1,
+      "bestAttempt": 1137,
+      "avgAttempt": 1137,
+      "lastCenterSeed": 790841979
+    },
+    {
+      "winningSeed": 539911562,
+      "hits": 1,
+      "bestAttempt": 1238,
+      "avgAttempt": 1238,
+      "lastCenterSeed": 106108677
+    },
+    {
+      "winningSeed": 1446420116,
+      "hits": 1,
+      "bestAttempt": 1487,
+      "avgAttempt": 1487,
+      "lastCenterSeed": 659710132
+    },
+    {
+      "winningSeed": 989602550,
+      "hits": 1,
+      "bestAttempt": 1601,
+      "avgAttempt": 1601,
+      "lastCenterSeed": 790841635
+    },
+    {
+      "winningSeed": 1781163456,
+      "hits": 1,
+      "bestAttempt": 1696,
+      "avgAttempt": 1696,
+      "lastCenterSeed": 790843113
+    },
+    {
+      "winningSeed": 1548854590,
+      "hits": 1,
+      "bestAttempt": 1717,
+      "avgAttempt": 1717,
+      "lastCenterSeed": 921137908
+    },
+    {
+      "winningSeed": 338137919,
+      "hits": 1,
+      "bestAttempt": 1769,
+      "avgAttempt": 1769,
+      "lastCenterSeed": 131598764
+    },
+    {
+      "winningSeed": 1220701583,
+      "hits": 1,
+      "bestAttempt": 1773,
+      "avgAttempt": 1773,
+      "lastCenterSeed": 921138191
+    },
+    {
+      "winningSeed": 682658652,
+      "hits": 1,
+      "bestAttempt": 1855,
+      "avgAttempt": 1855,
+      "lastCenterSeed": 126024339
+    },
+    {
+      "winningSeed": 782654218,
+      "hits": 1,
+      "bestAttempt": 2233,
+      "avgAttempt": 2233,
+      "lastCenterSeed": 659708298
+    },
+    {
+      "winningSeed": 1590118105,
+      "hits": 1,
+      "bestAttempt": 2251,
+      "avgAttempt": 2251,
+      "lastCenterSeed": 790842830
+    },
+    {
+      "winningSeed": 25116902,
+      "hits": 1,
+      "bestAttempt": 2281,
+      "avgAttempt": 2281,
+      "lastCenterSeed": 1285
+    },
+    {
+      "winningSeed": 1276220309,
+      "hits": 1,
+      "bestAttempt": 2285,
+      "avgAttempt": 2285,
+      "lastCenterSeed": 659710305
+    },
+    {
+      "winningSeed": 884642383,
+      "hits": 1,
+      "bestAttempt": 2322,
+      "avgAttempt": 2322,
+      "lastCenterSeed": 790841632
+    },
+    {
+      "winningSeed": 888619988,
+      "hits": 1,
+      "bestAttempt": 2344,
+      "avgAttempt": 2344,
+      "lastCenterSeed": 659708360
+    }
+  ]
+}

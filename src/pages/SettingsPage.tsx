@@ -122,9 +122,10 @@ export function SettingsPage() {
               >
                 <option value="strict">Strict evaluation</option>
                 <option value="humanLike">Human-like heuristics</option>
+                <option value="harmonizing">Harmonizing heuristics</option>
               </Select>
               <div className="text-sm text-slate-600">
-                Human-like mode keeps the core contrapuntal constraints but relaxes a few stylistic rules and biases generation toward smoother, longer phrases.
+                Human-like mode keeps the core contrapuntal constraints but relaxes a few stylistic rules and biases generation toward smoother, longer phrases. Harmonizing mode leans harder into HCP-style thirds, sixths, and cadence support.
               </div>
             </div>
           </CardBody>

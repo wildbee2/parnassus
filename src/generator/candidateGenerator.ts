@@ -2,6 +2,8 @@ import { modeDegreeToPc, type ModeName } from '../music/mode';
 import { midiToPitchClass } from '../music/pitch';
 import type { Candidate, CounterpointScore, Voice } from '../counterpoint/model';
 import { classifyIntervalSemitones } from '../music/consonance';
+import type { CounterpointSettings } from '../counterpoint/settings';
+import { defaultCounterpointSettings, isMinorMode, melodicMinorSixthPitchClass } from '../counterpoint/settings';
 
 export interface CandidateContext {
   score: CounterpointScore;
@@ -11,24 +13,40 @@ export interface CandidateContext {
   cfMidi?: number;
   species: NonNullable<Voice['species']>;
   mode: ModeName;
+  settings?: Partial<CounterpointSettings>;
 }
 
-function pitchCandidatesInRange(min: number, max: number, mode: ModeName, tonicPc: number): number[] {
+function pitchCandidatesInRange(min: number, max: number, mode: ModeName, tonicPc: number, settings: CounterpointSettings): number[] {
   const out: number[] = [];
+  const modalPitchClasses = new Set<number>();
+  for (let degree = 1; degree <= 7; degree += 1) {
+    modalPitchClasses.add(modeDegreeToPc(mode, tonicPc, degree));
+  }
+  if (settings.heuristicMode === 'harmonizing') {
+    modalPitchClasses.add((modeDegreeToPc(mode, tonicPc, 2) + 11) % 12);
+    modalPitchClasses.add((modeDegreeToPc(mode, tonicPc, 4) + 1) % 12);
+    modalPitchClasses.add((modeDegreeToPc(mode, tonicPc, 6) + 11) % 12);
+    modalPitchClasses.add((modeDegreeToPc(mode, tonicPc, 7) + 1) % 12);
+  }
+  if (settings.permitMelodicMinorSixth && isMinorMode(mode)) {
+    modalPitchClasses.add(melodicMinorSixthPitchClass(mode, tonicPc));
+  }
   for (let midi = min; midi <= max; midi += 1) {
-    if (midiToPitchClass(midi) === tonicPc || modeDegreeToPc(mode, tonicPc, 1) === midiToPitchClass(midi)) {
+    if (modalPitchClasses.has(midiToPitchClass(midi))) {
       out.push(midi);
       continue;
     }
-    const pcs = [0, 1, 2, 3, 4, 5, 6];
-    if (pcs.some((degree) => modeDegreeToPc(mode, tonicPc, degree + 1) === midiToPitchClass(midi))) out.push(midi);
+    if (settings.musicaFicta) {
+      out.push(midi);
+    }
   }
   return [...new Set(out)];
 }
 
 export function generateCandidates(context: CandidateContext): Candidate[] {
   const { score, voice, tick, previousMidi, cfMidi } = context;
-  const pool = pitchCandidatesInRange(voice.rangeMinMidi, voice.rangeMaxMidi, score.mode, score.tonicPitchClass);
+  const settings = { ...defaultCounterpointSettings, ...(context.settings ?? {}) };
+  const pool = pitchCandidatesInRange(voice.rangeMinMidi, voice.rangeMaxMidi, score.mode, score.tonicPitchClass, settings);
   const candidates: Candidate[] = [];
   const finalTick = Math.max(...score.voices.flatMap((v) => v.notes.map((n) => n.startTick + n.durationTicks)), score.ticksPerWhole);
   const isFinal = tick + score.ticksPerWhole >= finalTick;

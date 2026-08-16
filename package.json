@@ -11,6 +11,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "lint": "tsc -b --pretty false",
+    "seed:mutate": "vite-node --script simulations/seed_mutation_search.ts",
+    "seed:density": "vite-node --script simulations/seed_density_search.ts",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
   },

@@ -13,7 +13,7 @@ export function GeneratePage() {
   const { score, updateScore, evaluate, updateNote, setTempo, setTitle, loadExample, clearScore, settings } = useAppStore();
   const [selectedExampleId, setSelectedExampleId] = useState('');
 
-  const exampleSummary = useMemo(() => evaluateCounterpoint(score, settings.heuristicMode), [score, settings.heuristicMode]);
+  const exampleSummary = useMemo(() => evaluateCounterpoint(score, settings), [score, settings]);
 
   return (
     <AppShell

@@ -1,8 +1,9 @@
 import type { ModeName } from '../music/mode';
 import type { InstrumentPreset } from '../music/instruments';
+import type { CounterpointSettings } from './settings';
 
 export type Species = 'first' | 'second' | 'third' | 'fourth' | 'fifth';
-export type GenerationStyle = 'strict' | 'humanLike';
+export type GenerationStyle = 'strict' | 'humanLike' | 'harmonizing';
 export type Severity = 'fatal' | 'error' | 'warning' | 'info';
 export type RuleCategory =
   | 'melody'
@@ -125,6 +126,7 @@ export interface SearchOptions {
   seed: number;
   strictness: 'strict' | 'balanced' | 'permissive';
   heuristicMode?: GenerationStyle;
+  settings?: Partial<CounterpointSettings>;
 }
 
 export interface Candidate {

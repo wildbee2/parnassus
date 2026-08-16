@@ -1,0 +1,30 @@
+{
+  "scanIndex": 17,
+  "mode": "mixolydian",
+  "species": [
+    "second",
+    "first",
+    "fifth"
+  ],
+  "summary": {
+    "centerSeed": 921138179,
+    "tested": 129,
+    "hits": 2,
+    "hitRate": 0.015503875968992248,
+    "bestWinningSeed": 1220701583,
+    "bestAttempt": 1773,
+    "avgAttempt": 1990.5
+  },
+  "hits": [
+    {
+      "runSeed": 921138122,
+      "winningSeed": 1659710533,
+      "attempts": 2208
+    },
+    {
+      "runSeed": 921138191,
+      "winningSeed": 1220701583,
+      "attempts": 1773
+    }
+  ]
+}

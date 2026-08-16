@@ -13,7 +13,7 @@ export function EvaluatePage() {
   const { score, updateScore, updateVoice, evaluate, updateNote, setScore, setSelectedNoteId, setSelectedVoiceId, settings } = useAppStore();
   const [text, setText] = useState('CF: D4/2 E4/2 F4/2 G4/2\nCP1 (second): A4/4 C5/4 A4/4 C5/4 B4/4 A4/4 C5/4 D5/4');
   const [suggestionMessage, setSuggestionMessage] = useState<string | null>(null);
-  const result = evaluateCounterpoint(score, settings.heuristicMode);
+  const result = evaluateCounterpoint(score, settings);
 
   function importText() {
     const parsed = parseScoreText(text, score);
@@ -24,7 +24,7 @@ export function EvaluatePage() {
 
   function suggest() {
     const previousLengths = new Map(score.voices.map((voice) => [voice.id, voice.notes.length]));
-    const nextScore = suggestNoteAddition(score, Math.random, settings.heuristicMode);
+    const nextScore = suggestNoteAddition(score, Math.random, settings);
     if (!nextScore) {
       setSuggestionMessage('No legal next note could be found for the current score and species settings.');
       return;

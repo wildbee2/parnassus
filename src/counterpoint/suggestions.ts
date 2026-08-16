@@ -4,6 +4,8 @@ import { speciesDurationAtIndex, voiceEndTick } from './species';
 import { modeDegreeToPc } from '../music/mode';
 import { midiToPitchClass, midiToNoteName } from '../music/pitch';
 import type { GenerationStyle } from './model';
+import type { CounterpointSettings } from './settings';
+import { resolveCounterpointSettings } from './settings';
 
 export function suggestRepairsForViolation(score: CounterpointScore, violation: RuleViolation): SuggestedFix[] {
   if (violation.suggestedFixes?.length) return violation.suggestedFixes;
@@ -67,7 +69,12 @@ function shuffle<T>(items: T[], random = Math.random): T[] {
   return out;
 }
 
-export function suggestNoteAddition(score: CounterpointScore, random = Math.random, heuristicMode: GenerationStyle = 'strict'): CounterpointScore | null {
+export function suggestNoteAddition(
+  score: CounterpointScore,
+  random = Math.random,
+  settingsOrHeuristicMode: GenerationStyle | Partial<CounterpointSettings> = 'strict'
+): CounterpointScore | null {
+  const settings = resolveCounterpointSettings(settingsOrHeuristicMode);
   if (!score.voices.length) return null;
 
   const endTicks = score.voices.map((voice) => voiceEndTick(voice));
@@ -83,7 +90,7 @@ export function suggestNoteAddition(score: CounterpointScore, random = Math.rand
   const modalCandidates = modalPitchCandidatesInRange(targetVoice.rangeMinMidi, targetVoice.rangeMaxMidi, score.mode, score.tonicPitchClass);
   const chromaticCandidates = chromaticPitchCandidatesInRange(targetVoice.rangeMinMidi, targetVoice.rangeMaxMidi);
   const candidatePitches = shuffle([...new Set([...modalCandidates, ...chromaticCandidates])], random);
-  const baselineSignatures = new Set(evaluateCounterpoint(score, heuristicMode).violations.map(violationSignature));
+  const baselineSignatures = new Set(evaluateCounterpoint(score, settings).violations.map(violationSignature));
 
   for (const midi of candidatePitches) {
     const nextScore = structuredClone(score);
@@ -106,7 +113,7 @@ export function suggestNoteAddition(score: CounterpointScore, random = Math.rand
     }
     nextVoice.notes = [...nextVoice.notes, note];
 
-    const newEvaluation = evaluateCounterpoint(nextScore, heuristicMode);
+    const newEvaluation = evaluateCounterpoint(nextScore, settings);
     const newViolations = newEvaluation.violations.filter((violation) => !baselineSignatures.has(violationSignature(violation)));
     if (!newViolations.length) {
       return nextScore;

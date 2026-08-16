@@ -5,6 +5,8 @@ import { ScoreGrid } from '../components/notation/ScoreGrid';
 import { PlaybackControls } from '../components/playback/PlaybackControls';
 import { useAppStore } from '../store/useAppStore';
 import { searchLabCounterpoint } from '../counterpoint/labSearch';
+import { normalizeSeed } from '../counterpoint/seedMutation';
+import { scanSeedDensity } from '../counterpoint/seedDensity';
 import type { Species } from '../counterpoint/model';
 import type { ModeName } from '../music/mode';
 import type { InstrumentPreset } from '../music/instruments';
@@ -61,7 +63,19 @@ export function LabPage() {
   const [message, setMessage] = useState<string>('Configure the lab search and run a simulation.');
   const [progress, setProgress] = useState<string>('');
   const [labResult, setLabResult] = useState<string | null>(null);
+  const [currentSeed, setCurrentSeed] = useState<number>(() => Math.floor(Math.random() * 1_000_000_000));
   const [runSeed, setRunSeed] = useState<number | null>(null);
+  const [scanRadius, setScanRadius] = useState(24);
+  const [scanStep, setScanStep] = useState(1);
+  const [scanAttempts, setScanAttempts] = useState(2500);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanResult, setScanResult] = useState<{
+    centerSeed: number;
+    radius: number;
+    step: number;
+    tested: number;
+    hits: Array<{ runSeed: number; winningSeed: number; attempts: number }>;
+  } | null>(null);
   const searchAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -114,7 +128,8 @@ export function LabPage() {
     const controller = new AbortController();
     searchAbortRef.current = controller;
     setIsSearching(true);
-    const nextRunSeed = Math.floor(Math.random() * 1_000_000_000);
+    const nextRunSeed = normalizeSeed(currentSeed);
+    setCurrentSeed(nextRunSeed);
     setRunSeed(nextRunSeed);
     setMessage(`Searching for a valid pattern with run seed ${nextRunSeed}...`);
     setProgress('');
@@ -170,6 +185,56 @@ export function LabPage() {
     searchAbortRef.current?.abort();
   }
 
+  async function scanSeedNeighborhood() {
+    searchAbortRef.current?.abort();
+    const controller = new AbortController();
+    searchAbortRef.current = controller;
+    setIsScanning(true);
+    const nextCenterSeed = normalizeSeed(currentSeed);
+    setCurrentSeed(nextCenterSeed);
+    setMessage(`Scanning seeds near ${nextCenterSeed}...`);
+    setProgress('');
+    setScanResult(null);
+
+    try {
+      const result = await scanSeedDensity({
+        centerSeed: nextCenterSeed,
+        radius: scanRadius,
+        step: scanStep,
+        maxAttempts: scanAttempts,
+        totalVoices,
+        species: speciesSelections.slice(0, cpCount),
+        bars,
+        mode,
+        heuristicMode: 'humanLike',
+        instruments: instrumentSelections,
+        signal: controller.signal,
+        onProgress: (tested, total, runSeedValue) => {
+          setProgress(`Scanning seed ${tested} of ${total}: ${runSeedValue}`);
+        }
+      });
+
+      if (controller.signal.aborted) {
+        setMessage('Seed scan paused.');
+        return;
+      }
+
+      setScanResult(result);
+      setMessage(`Seed scan complete: ${result.hits.length} hits in ${result.tested} seeds near ${result.centerSeed}.`);
+    } catch (error) {
+      if ((error as Error).name === 'AbortError') {
+        setMessage('Seed scan paused.');
+        return;
+      }
+      throw error;
+    } finally {
+      if (searchAbortRef.current === controller) {
+        searchAbortRef.current = null;
+      }
+      setIsScanning(false);
+    }
+  }
+
   function updateInstrument(index: number, instrument: InstrumentPreset) {
     setInstrumentSelections((current) => {
       const next = [...current];
@@ -199,13 +264,28 @@ export function LabPage() {
             <div className="flex items-center justify-between gap-2">
               <div>
                 <div className="text-sm font-semibold">Lab Controls</div>
-                <div className="text-xs text-slate-500">Searches use a random seed, a random cantus firmus, human-like heuristics, and historically permissive filtering.</div>
-                <div className="mt-1 text-xs text-slate-500">Current run seed: {runSeed ?? 'not started yet'}</div>
+                <div className="text-xs text-slate-500">Searches use the editable seed below, a random cantus firmus, human-like heuristics, and historically permissive filtering.</div>
+                <div className="mt-1 text-xs text-slate-500">Last run seed: {runSeed ?? 'not started yet'}</div>
               </div>
               <Badge tone="info">{isSearching ? 'Searching' : 'Ready'}</Badge>
             </div>
           </CardHeader>
-          <CardBody className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <CardBody className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <div className="space-y-2">
+              <Label>Current seed</Label>
+              <Input
+                type="number"
+                min={0}
+                max={999999999}
+                value={currentSeed}
+                onChange={(event) => {
+                  const nextSeed = Number(event.target.value);
+                  if (!Number.isFinite(nextSeed)) return;
+                  setCurrentSeed(normalizeSeed(nextSeed));
+                }}
+                disabled={isSearching}
+              />
+            </div>
             <div className="space-y-2">
               <Label>Total voicings</Label>
               <Select value={totalVoices} onChange={(event) => setTotalVoices(Number(event.target.value))} disabled={isSearching}>
@@ -228,19 +308,100 @@ export function LabPage() {
                 ))}
               </Select>
             </div>
+              <div className="space-y-2">
+                <Label>Search</Label>
+                <Button onClick={runLabSearch} disabled={isSearching} className="w-full">
+                  {isSearching ? 'Running...' : 'Run simulation'}
+                </Button>
+                <Button onClick={scanSeedNeighborhood} disabled={isSearching || isScanning} variant="secondary" className="w-full">
+                  {isScanning ? 'Scanning...' : 'Scan neighborhood'}
+                </Button>
+                <Button onClick={stopLabSearch} disabled={!isSearching && !isScanning} variant="secondary" className="w-full">
+                  Stop
+                </Button>
+                <Button onClick={exportLabResult} disabled={!labResult || isSearching || isScanning} variant="secondary" className="w-full">
+                  Export Lab JSON
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="text-sm font-semibold">Seed Density Scan</div>
+          </CardHeader>
+          <CardBody className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div className="space-y-2">
-              <Label>Search</Label>
-              <Button onClick={runLabSearch} disabled={isSearching} className="w-full">
-                {isSearching ? 'Running...' : 'Run simulation'}
-              </Button>
-              <Button onClick={stopLabSearch} disabled={!isSearching} variant="secondary" className="w-full">
-                Stop
-              </Button>
-              <Button onClick={exportLabResult} disabled={!labResult || isSearching} variant="secondary" className="w-full">
-                Export Lab JSON
-              </Button>
+              <Label>Radius</Label>
+              <Input
+                type="number"
+                min={0}
+                max={5000}
+                value={scanRadius}
+                onChange={(event) => {
+                  const nextValue = Number(event.target.value);
+                  setScanRadius(Number.isFinite(nextValue) ? Math.max(0, nextValue) : 0);
+                }}
+                disabled={isSearching || isScanning}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Step</Label>
+              <Input
+                type="number"
+                min={1}
+                max={1000}
+                value={scanStep}
+                onChange={(event) => {
+                  const nextValue = Number(event.target.value);
+                  setScanStep(Number.isFinite(nextValue) ? Math.max(1, nextValue) : 1);
+                }}
+                disabled={isSearching || isScanning}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Attempts per seed</Label>
+              <Input
+                type="number"
+                min={1}
+                max={50000}
+                value={scanAttempts}
+                onChange={(event) => {
+                  const nextValue = Number(event.target.value);
+                  setScanAttempts(Number.isFinite(nextValue) ? Math.max(1, nextValue) : 1);
+                }}
+                disabled={isSearching || isScanning}
+              />
+            </div>
+            <div className="space-y-2 text-sm text-slate-600">
+              <div>Use this to sample nearby run seeds and see whether winners cluster around the current seed.</div>
+              <div>Current scan center: {normalizeSeed(currentSeed)}</div>
             </div>
           </CardBody>
+          {scanResult ? (
+            <CardBody className="pt-0">
+              <div className="mb-3 text-sm text-slate-600">
+                Tested {scanResult.tested} seeds. Found {scanResult.hits.length} hits.
+              </div>
+              <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                {scanResult.hits.length > 0 ? scanResult.hits.map((hit) => (
+                  <button
+                    key={`${hit.runSeed}-${hit.winningSeed}`}
+                    type="button"
+                    onClick={() => setCurrentSeed(hit.runSeed)}
+                    className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-left text-sm text-emerald-900 transition hover:bg-emerald-100"
+                  >
+                    <div className="font-medium">Run seed {hit.runSeed}</div>
+                    <div className="text-xs text-emerald-700">Winning seed {hit.winningSeed} · attempt {hit.attempts}</div>
+                  </button>
+                )) : (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
+                    No hits in the scanned neighborhood.
+                  </div>
+                )}
+              </div>
+            </CardBody>
+          ) : null}
         </Card>
 
         <Card>

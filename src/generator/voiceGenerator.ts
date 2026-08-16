@@ -1,7 +1,7 @@
 import { classifyIntervalSemitones } from '../music/consonance';
-import { modeDegreeToPc } from '../music/mode';
-import { midiToPitchClass } from '../music/pitch';
 import type { CounterpointScore, GenerationStyle, NoteEvent, Voice } from '../counterpoint/model';
+import type { CounterpointSettings } from '../counterpoint/settings';
+import { defaultCounterpointSettings } from '../counterpoint/settings';
 import { SeededRandom } from './seededRandom';
 import { scoreCandidate } from './phraseScoring';
 import { generateCandidates } from './candidateGenerator';
@@ -13,25 +13,37 @@ export interface VoiceGenerationOptions {
   seed: number;
   lockedNotes?: NoteEvent[];
   heuristicMode?: GenerationStyle;
+  settings?: Partial<CounterpointSettings>;
 }
 
 function sortUnique(values: number[]): number[] {
   return [...new Set(values)].sort((a, b) => a - b);
 }
 
-function candidateIsAllowed(midi: number, existing: Voice[], tick: number, voice: Voice, score: CounterpointScore): boolean {
+function voiceSortKey(voice: Voice): number {
+  if (voice.position === 'above') return 0;
+  if (voice.position === 'below') return 999;
+  return voice.notes.length ? voice.notes.reduce((sum, note) => sum + note.midi, 0) / voice.notes.length : (voice.rangeMinMidi + voice.rangeMaxMidi) / 2;
+}
+
+function candidateIsAllowed(midi: number, existing: Voice[], tick: number, voice: Voice, score: CounterpointScore, settings: CounterpointSettings): boolean {
   for (const other of existing) {
     const active = other.notes.find((note) => note.startTick <= tick && tick < note.startTick + note.durationTicks);
     if (!active) continue;
-    const interval = classifyIntervalSemitones(midi - active.midi, true);
+    const interval = classifyIntervalSemitones(midi - active.midi, settings.fourthAboveBassDissonant);
     if (voice.species === 'first' && interval === 'dissonant') return false;
-    if (tick % score.ticksPerWhole === 0 && interval === 'dissonant' && voice.species !== 'fifth') return false;
+    if (tick % score.ticksPerWhole === 0 && interval === 'dissonant' && voice.species !== 'fifth' && !settings.allowAccentedPassingDissonance) return false;
+    const currentRank = voiceSortKey(voice);
+    const otherRank = voiceSortKey(other);
+    if (!settings.permitVoiceCrossing && ((currentRank < otherRank && midi < active.midi) || (currentRank > otherRank && midi > active.midi))) return false;
+    if (!settings.permitVoiceOverlap && Math.abs(midi - active.midi) < 3) return false;
   }
   return true;
 }
 
 export function generateVoice(options: VoiceGenerationOptions): Voice {
   const { score, voice, seed, heuristicMode = 'strict' } = options;
+  const settings = { ...defaultCounterpointSettings, ...(options.settings ?? {}) };
   const rng = new SeededRandom(seed);
   const cf = score.voices.find((v) => v.role === 'cantus');
   const source = cf ?? score.voices[0];
@@ -51,9 +63,10 @@ export function generateVoice(options: VoiceGenerationOptions): Voice {
       previousMidi: notes.at(-1)?.midi ?? previousMidi,
       cfMidi,
       species: voice.species ?? 'first',
-      mode: score.mode
+      mode: score.mode,
+      settings
     }).map((candidate) => candidate.midi);
-    const legal = sortUnique(candidates.filter((midi) => candidateIsAllowed(midi, score.voices.filter((v) => v.id !== voice.id), tick, voice, score)));
+    const legal = sortUnique(candidates.filter((midi) => candidateIsAllowed(midi, score.voices.filter((v) => v.id !== voice.id), tick, voice, score, settings)));
     const ranked = legal
       .map((midi) => ({
         midi,
@@ -64,7 +77,8 @@ export function generateVoice(options: VoiceGenerationOptions): Voice {
           previousMidi: notes.at(-1)?.midi ?? undefined,
           cfMidi,
           tick,
-          generationStyle: heuristicMode
+          generationStyle: heuristicMode,
+          settings
         })
       }))
       .sort((a, b) => b.score - a.score);

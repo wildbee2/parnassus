@@ -1,0 +1,16 @@
+{
+  "scanIndex": 6,
+  "mode": "mixolydian",
+  "species": [
+    "second",
+    "first",
+    "fifth"
+  ],
+  "summary": {
+    "centerSeed": 790841751,
+    "tested": 129,
+    "hits": 0,
+    "hitRate": 0
+  },
+  "hits": []
+}

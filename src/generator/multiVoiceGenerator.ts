@@ -2,6 +2,7 @@ import { generateCantusFirmus } from './cantusGenerator';
 import { generateVoice } from './voiceGenerator';
 import type { CounterpointScore, GeneratedResult, GenerateRequest, Voice } from '../counterpoint/model';
 import { evaluateCounterpoint } from '../counterpoint/evaluator';
+import { resolveCounterpointSettings } from '../counterpoint/settings';
 
 function cloneScore(score: CounterpointScore): CounterpointScore {
   return structuredClone(score);
@@ -16,13 +17,13 @@ function orderVoiceGeneration(voices: Voice[]): Voice[] {
   });
 }
 
-function violationSummary(score: CounterpointScore, heuristicMode: GenerateRequest['options']['heuristicMode']): {
+function violationSummary(score: CounterpointScore, heuristicMode: GenerateRequest['options']['heuristicMode'], settings: GenerateRequest['options']['settings']): {
   fatal: number;
   error: number;
   warning: number;
   total: number;
 } {
-  const result = evaluateCounterpoint(score, heuristicMode);
+  const result = evaluateCounterpoint(score, settings ?? heuristicMode);
   return {
     fatal: result.violations.filter((violation) => violation.severity === 'fatal').length,
     error: result.violations.filter((violation) => violation.severity === 'error').length,
@@ -38,7 +39,13 @@ function betterThan(a: ReturnType<typeof violationSummary>, b: ReturnType<typeof
   return a.total < b.total;
 }
 
-function populateScore(base: CounterpointScore, seed: number, strictness: GenerateRequest['options']['strictness'], heuristicMode: GenerateRequest['options']['heuristicMode']): CounterpointScore {
+function populateScore(
+  base: CounterpointScore,
+  seed: number,
+  strictness: GenerateRequest['options']['strictness'],
+  heuristicMode: GenerateRequest['options']['heuristicMode'],
+  settings: GenerateRequest['options']['settings']
+): CounterpointScore {
   const score = cloneScore(base);
   const cf = score.voices.find((voice) => voice.role === 'cantus') ?? score.voices[0];
   if (cf.notes.length === 0) {
@@ -56,15 +63,17 @@ function populateScore(base: CounterpointScore, seed: number, strictness: Genera
   for (let index = 0; index < voices.length; index += 1) {
     const voice = voices[index];
     if (voice.role === 'cantus' || voice.notes.length > 0) continue;
+    // Harmonizing is schema-driven, so we do not amplify it with repeated resampling.
     const heuristicBonus = heuristicMode === 'humanLike' ? 4 : 0;
-    const attempts = (strictness === 'strict' ? 18 : strictness === 'balanced' ? 12 : 8) + heuristicBonus;
+    const templatePass = heuristicMode === 'harmonizing' ? 1 : 0;
+    const attempts = templatePass || (strictness === 'strict' ? 18 : strictness === 'balanced' ? 12 : 8) + heuristicBonus;
     let bestScore: CounterpointScore | null = null;
     let bestSummary: ReturnType<typeof violationSummary> | null = null;
     for (let attempt = 0; attempt < attempts; attempt += 1) {
-      const generated = generateVoice({ score, voice, seed: seed + index * 97 + attempt * 13, heuristicMode });
+      const generated = generateVoice({ score, voice, seed: seed + index * 97 + attempt * 13, heuristicMode, settings });
       const updated = cloneScore(score);
       updated.voices = updated.voices.map((existing) => (existing.id === voice.id ? generated : existing));
-      const summary = violationSummary(updated, heuristicMode);
+      const summary = violationSummary(updated, heuristicMode, settings);
       if (!bestSummary || betterThan(summary, bestSummary)) {
         bestSummary = summary;
         bestScore = updated;
@@ -81,9 +90,10 @@ function populateScore(base: CounterpointScore, seed: number, strictness: Genera
 }
 
 export function generateCounterpointScore(request: GenerateRequest): GeneratedResult {
+  const settings = resolveCounterpointSettings(request.options.settings ?? request.options.heuristicMode);
   const heuristicMode = request.options.heuristicMode ?? 'strict';
   const baseMaxAttempts = request.options.strictness === 'strict' ? Math.max(120, request.options.maxBacktracks * 3) : request.options.strictness === 'balanced' ? Math.max(60, request.options.maxBacktracks * 2) : Math.max(30, request.options.maxBacktracks);
-  const maxAttempts = heuristicMode === 'humanLike' ? Math.max(baseMaxAttempts, Math.floor(baseMaxAttempts * 1.5)) : baseMaxAttempts;
+  const maxAttempts = heuristicMode === 'harmonizing' ? 1 : heuristicMode === 'humanLike' ? Math.max(baseMaxAttempts, Math.floor(baseMaxAttempts * 1.5)) : baseMaxAttempts;
   let bestScore: CounterpointScore | null = null;
   let bestSummary: ReturnType<typeof violationSummary> | null = null;
   let zeroViolationScore: CounterpointScore | null = null;
@@ -92,8 +102,8 @@ export function generateCounterpointScore(request: GenerateRequest): GeneratedRe
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     const candidateSeed = request.options.seed + attempt * 7919;
-    const score = populateScore(request.score, candidateSeed, request.options.strictness, heuristicMode);
-    const evaluation = evaluateCounterpoint(score, heuristicMode);
+    const score = populateScore(request.score, candidateSeed, request.options.strictness, heuristicMode, request.options.settings);
+    const evaluation = evaluateCounterpoint(score, settings);
     const summary = {
       fatal: evaluation.violations.filter((violation) => violation.severity === 'fatal').length,
       error: evaluation.violations.filter((violation) => violation.severity === 'error').length,
@@ -112,8 +122,8 @@ export function generateCounterpointScore(request: GenerateRequest): GeneratedRe
     }
   }
 
-  const chosenScore = zeroViolationScore ?? bestScore ?? populateScore(request.score, request.options.seed, request.options.strictness, heuristicMode);
-  const evaluation = zeroViolationEvaluation ?? evaluateCounterpoint(chosenScore, heuristicMode);
+  const chosenScore = zeroViolationScore ?? bestScore ?? populateScore(request.score, request.options.seed, request.options.strictness, heuristicMode, request.options.settings);
+  const evaluation = zeroViolationEvaluation ?? evaluateCounterpoint(chosenScore, settings);
   return {
     score: chosenScore,
     evaluation,

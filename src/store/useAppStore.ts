@@ -1,30 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { CounterpointScore, GeneratedResult, GenerationStyle, Species } from '../counterpoint/model';
+import type { CounterpointScore, GeneratedResult, Species } from '../counterpoint/model';
 import { DEFAULT_RANGES } from '../counterpoint/model';
+import type { CounterpointSettings } from '../counterpoint/settings';
+import { defaultCounterpointSettings } from '../counterpoint/settings';
 import { generateCantusFirmus } from '../generator/cantusGenerator';
 import { generateCounterpointScore } from '../generator/multiVoiceGenerator';
 import { evaluateCounterpoint } from '../counterpoint/evaluator';
 
-export interface AppSettings {
-  permitRepeatedNotes: boolean;
-  permitMoreThanThreeThirds: boolean;
-  permitMoreThanThreeSixths: boolean;
-  directPerfectStrictness: number;
-  permitVoiceCrossing: boolean;
-  permitVoiceOverlap: boolean;
-  allowCambiata: boolean;
-  allowAccentedPassingDissonance: boolean;
-  strictSuspensionResolution: boolean;
-  permitMelodicMinorSixth: boolean;
-  permitOctaveLeap: boolean;
-  climaxUniquenessStrictness: number;
-  cadenceStrictness: number;
-  musicaFicta: boolean;
-  fourthAboveBassDissonant: boolean;
-  strictnessProfile: 'strict' | 'balanced' | 'permissive';
-  heuristicMode: GenerationStyle;
-}
+export type AppSettings = CounterpointSettings;
 
 export interface RecentExercise {
   id: string;
@@ -103,26 +87,6 @@ function makeScore(): CounterpointScore {
   };
 }
 
-const defaultSettings: AppSettings = {
-  permitRepeatedNotes: false,
-  permitMoreThanThreeThirds: false,
-  permitMoreThanThreeSixths: false,
-  directPerfectStrictness: 0.9,
-  permitVoiceCrossing: false,
-  permitVoiceOverlap: false,
-  allowCambiata: true,
-  allowAccentedPassingDissonance: false,
-  strictSuspensionResolution: true,
-  permitMelodicMinorSixth: true,
-  permitOctaveLeap: false,
-  climaxUniquenessStrictness: 0.8,
-  cadenceStrictness: 0.9,
-  musicaFicta: false,
-  fourthAboveBassDissonant: true,
-  strictnessProfile: 'balanced',
-  heuristicMode: 'humanLike'
-};
-
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -130,7 +94,7 @@ export const useAppStore = create<AppState>()(
       selectedNoteId: undefined,
       selectedVoiceId: undefined,
       evaluation: null,
-      settings: defaultSettings,
+      settings: defaultCounterpointSettings,
       history: [],
       future: [],
       recentExercises: [],
@@ -172,7 +136,7 @@ export const useAppStore = create<AppState>()(
         if (!next) return state;
         return { score: next, history: [...state.history, state.score], future: rest };
       }),
-      evaluate: () => set((state) => ({ evaluation: evaluateCounterpoint(state.score, get().settings.heuristicMode) })),
+      evaluate: () => set((state) => ({ evaluation: evaluateCounterpoint(state.score, get().settings) })),
       generate: () => {
         const seed = get().score.seed ?? 17;
         const result = generateCounterpointScore({
@@ -182,7 +146,8 @@ export const useAppStore = create<AppState>()(
             maxBacktracks: 80,
             seed,
             strictness: get().settings.strictnessProfile,
-            heuristicMode: get().settings.heuristicMode
+            heuristicMode: get().settings.heuristicMode,
+            settings: get().settings
           }
         });
         set((state) => ({
@@ -202,22 +167,28 @@ export const useAppStore = create<AppState>()(
         future: [],
         selectedNoteId: undefined,
         selectedVoiceId: undefined,
-        evaluation: evaluateCounterpoint(score, get().settings.heuristicMode),
+        evaluation: evaluateCounterpoint(score, get().settings),
         recentExercises: [
           { id: score.id, title: score.title, timestamp: Date.now() },
           ...state.recentExercises
         ].slice(0, 10)
       })),
-      updateSettings: (patch) => set((state) => ({ settings: { ...state.settings, ...patch } })),
+      updateSettings: (patch) => set((state) => {
+        const settings = { ...state.settings, ...patch };
+        return {
+          settings,
+          evaluation: evaluateCounterpoint(state.score, settings)
+        };
+      }),
       clearScore: () => set((state) => ({ history: [...state.history, state.score], score: makeScore(), future: [], selectedNoteId: undefined, selectedVoiceId: undefined, evaluation: null }))
     }),
     {
       name: 'gradus-counterpoint-studio',
-      version: 2,
+      version: 3,
       migrate: (persistedState) => {
         const legacyState = persistedState as Partial<Pick<AppState, 'settings' | 'recentExercises' | 'score'>> | undefined;
         return {
-          settings: { ...defaultSettings, ...(legacyState?.settings ?? {}) },
+          settings: { ...defaultCounterpointSettings, ...(legacyState?.settings ?? {}) },
           recentExercises: legacyState?.recentExercises ?? [],
           score: legacyState?.score ?? makeScore()
         };

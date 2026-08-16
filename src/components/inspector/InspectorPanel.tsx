@@ -93,6 +93,7 @@ export function InspectorPanel({ score, onApplyFix }: { score: CounterpointScore
             >
               <option value="strict">Strict evaluation</option>
               <option value="humanLike">Human-like heuristics</option>
+              <option value="harmonizing">Harmonizing heuristics</option>
             </select>
           </div>
           <div className="text-xs text-slate-500">Export JSON preview available from the toolbar.</div>

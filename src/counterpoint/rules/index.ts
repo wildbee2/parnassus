@@ -5,6 +5,7 @@ import { intervalInfo } from '../../music/interval';
 import { classifyMotion, isHiddenPerfect, isPerfectIntervalSemitoneClass } from '../../music/motion';
 import { modePitchClasses } from '../../music/mode';
 import { midiToNoteName } from '../../music/pitch';
+import { defaultCounterpointSettings, isMinorMode, melodicMinorSixthPitchClass, resolveCounterpointSettings } from '../settings';
 import type {
   CounterpointRule,
   CounterpointScore,
@@ -16,9 +17,15 @@ import type {
   SuggestedFix,
   Voice
 } from '../model';
+import type { CounterpointSettings } from '../settings';
 
 type NoteAtTick = { voice: Voice; note: NoteEvent };
 const HUMAN_LIKE_SOFT_RULE_IDS = new Set([
+  'MEL_REPEATED_NOTES',
+  'MEL_CLIMAX'
+]);
+
+const HARMONIZING_SOFT_RULE_IDS = new Set([
   'MEL_REPEATED_NOTES',
   'MEL_CLIMAX'
 ]);
@@ -71,14 +78,20 @@ const ruleViolation = (
   category
 });
 
-function filterViolationsByStyle(violations: RuleViolation[], heuristicMode: GenerationStyle = 'strict'): RuleViolation[] {
-  if (heuristicMode === 'humanLike') {
-    return violations.filter((violation) => {
-      if (!HUMAN_LIKE_SOFT_RULE_IDS.has(violation.ruleId)) return true;
-      return false;
-    });
-  }
-  return violations;
+function filterViolationsByStyle(violations: RuleViolation[], settings: CounterpointSettings): RuleViolation[] {
+  return violations.filter((violation) => {
+    if (settings.heuristicMode === 'humanLike' && HUMAN_LIKE_SOFT_RULE_IDS.has(violation.ruleId)) return false;
+    if (settings.heuristicMode === 'harmonizing' && HARMONIZING_SOFT_RULE_IDS.has(violation.ruleId)) return false;
+    if (settings.permitRepeatedNotes && violation.ruleId === 'MEL_REPEATED_NOTES') return false;
+    if (settings.permitVoiceCrossing && violation.ruleId === 'HAR_VOICE_CROSSING') return false;
+    if (settings.permitVoiceOverlap && violation.ruleId === 'HAR_VOICE_OVERLAP') return false;
+    if (settings.allowAccentedPassingDissonance && violation.ruleId === 'SP2_ACCENTED_DISSONANCE') return false;
+    if (!settings.strictSuspensionResolution && violation.ruleId === 'SP4_BAD_RESOLUTION') return false;
+    if (settings.permitOctaveLeap && violation.ruleId === 'MEL_OCTAVE_LEAP') return false;
+    if (settings.permitMoreThanThreeThirds && violation.ruleId === 'TEX_TOO_MANY_THIRDS') return false;
+    if (settings.permitMoreThanThreeSixths && violation.ruleId === 'TEX_TOO_MANY_SIXTHS') return false;
+    return true;
+  });
 }
 
 function uniqueTicks(score: CounterpointScore): number[] {
@@ -169,7 +182,11 @@ function createParallelFixes(score: CounterpointScore, a: Voice, b: Voice, noteA
   return fixes.slice(0, 3);
 }
 
-function melodicViolations(score: CounterpointScore): RuleViolation[] {
+function isRaisedMelodicMinorSixth(score: CounterpointScore, midi: number): boolean {
+  return isMinorMode(score.mode) && midi % 12 === melodicMinorSixthPitchClass(score.mode, score.tonicPitchClass);
+}
+
+function melodicViolations(score: CounterpointScore, settings: CounterpointSettings): RuleViolation[] {
   const out: RuleViolation[] = [];
   const keyPitchClasses = new Set(modePitchClasses(score.mode, score.tonicPitchClass));
   for (const voice of score.voices) {
@@ -177,9 +194,13 @@ function melodicViolations(score: CounterpointScore): RuleViolation[] {
     if (!notes.length) continue;
     let maxMidi = -Infinity;
     let climaxIndex = 0;
+    let maxCount = 0;
     for (let i = 0; i < notes.length; i += 1) {
       const note = notes[i];
-      if (!keyPitchClasses.has(note.midi % 12)) {
+      const inMode = keyPitchClasses.has(note.midi % 12);
+      const allowedFicta = settings.musicaFicta && i === notes.length - 1 && note.midi % 12 === score.tonicPitchClass;
+      const allowedRaisedSixth = settings.permitMelodicMinorSixth && isRaisedMelodicMinorSixth(score, note.midi);
+      if (!inMode && !allowedFicta && !allowedRaisedSixth) {
         out.push(ruleViolation(
           'MEL_KEY',
           'melody',
@@ -204,24 +225,25 @@ function melodicViolations(score: CounterpointScore): RuleViolation[] {
       if (note.midi > maxMidi) {
         maxMidi = note.midi;
         climaxIndex = i;
+        maxCount = 1;
+      } else if (note.midi === maxMidi) {
+        maxCount += 1;
       }
       if (i > 0) {
         const prev = notes[i - 1];
         const diff = note.midi - prev.midi;
         const abs = Math.abs(diff);
-        if (diff === 0) {
+        if (diff === 0 && !settings.permitRepeatedNotes) {
           out.push(ruleViolation('MEL_REPEATED_NOTES', 'melody', `${voice.name} repeats a pitch.`, 'Repeated notes can reduce melodic direction in strict species counterpoint.', [voice.id], note.startTick, [prev.id, note.id]));
         }
         if (abs === 6) {
           out.push(ruleViolation('MEL_TRITONE', 'melody', `${voice.name} outlines a melodic tritone.`, 'Augmented fourths and diminished fifths are treated conservatively in this system.', [voice.id], note.startTick, [prev.id, note.id]));
         }
-        if (abs === 1 || abs === 6 || abs === 10 || abs >= 12) {
-          if (abs >= 12) {
-            out.push(ruleViolation('MEL_AUGMENTED_LEAP', 'melody', `${voice.name} leaps by an octave or more.`, 'Large leaps should be rare and compensated carefully.', [voice.id], note.startTick, [prev.id, note.id]));
-          }
+        if (abs >= 12 && !settings.permitOctaveLeap) {
+          out.push(ruleViolation('MEL_OCTAVE_LEAP', 'melody', `${voice.name} leaps by an octave or more.`, 'Large leaps should be rare and compensated carefully.', [voice.id], note.startTick, [prev.id, note.id]));
         }
-        if (abs > 9) {
-          out.push(ruleViolation('MEL_AUGMENTED_LEAP', 'melody', `${voice.name} makes an unusually large leap.`, 'Large leaps weaken singability unless handled intentionally.', [voice.id], note.startTick, [prev.id, note.id]));
+        if (abs > 9 && !settings.permitOctaveLeap) {
+          out.push(ruleViolation('MEL_LARGE_LEAP', 'melody', `${voice.name} makes an unusually large leap.`, 'Large leaps weaken singability unless handled intentionally.', [voice.id], note.startTick, [prev.id, note.id]));
         }
         if (i > 1) {
           const before = notes[i - 2];
@@ -233,21 +255,23 @@ function melodicViolations(score: CounterpointScore): RuleViolation[] {
         }
       }
     }
-    const climaxAllowedWindow = [Math.floor(notes.length * 0.2), Math.ceil(notes.length * 0.8)];
-    if (climaxIndex < climaxAllowedWindow[0] || climaxIndex > climaxAllowedWindow[1]) {
+    const climaxWidth = Math.max(0.05, 0.2 - settings.climaxUniquenessStrictness * 0.08);
+    const climaxAllowedWindow = [Math.floor(notes.length * climaxWidth), Math.ceil(notes.length * (1 - climaxWidth))];
+    if (climaxIndex < climaxAllowedWindow[0] || climaxIndex > climaxAllowedWindow[1] || (settings.climaxUniquenessStrictness > 0.65 && maxCount > 1)) {
       out.push(ruleViolation('MEL_CLIMAX', 'melody', `${voice.name} places its climax awkwardly.`, 'A climax should generally emerge in the central span of the line.', [voice.id], notes[climaxIndex].startTick, [notes[climaxIndex].id]));
     }
   }
   return out;
 }
 
-function verticalViolations(score: CounterpointScore): RuleViolation[] {
+function verticalViolations(score: CounterpointScore, settings: CounterpointSettings): RuleViolation[] {
   const out: RuleViolation[] = [];
   const ticks = uniqueTicks(score);
+  const directPerfectThreshold = Math.max(1, Math.round((1 - settings.directPerfectStrictness) * 4) + 1);
   for (const tick of ticks) {
     const pairs = notePairsAtTick(score, tick);
     for (const [a, noteA, b, noteB] of pairs) {
-      const interval = intervalInfo(noteA.midi, noteB.midi, true);
+      const interval = intervalInfo(noteA.midi, noteB.midi, settings.fourthAboveBassDissonant);
       if (interval.consonance === 'dissonant') {
         const speciesRelevant = [a.species, b.species].some((species) => species && species !== 'fifth');
         if (speciesRelevant && tick % score.ticksPerWhole === 0) {
@@ -267,10 +291,10 @@ function verticalViolations(score: CounterpointScore): RuleViolation[] {
       if (motion.type === 'parallel' && nextInterval.intervalClass === 0) {
         out.push(ruleViolation('HAR_PARALLEL_8', 'harmony', `Parallel octaves/unisons between ${a.name} and ${b.name}.`, 'Parallel perfect consonances reduce independence.', [a.id, b.id], tick, [noteA.id, noteB.id, aNext.id, bNext.id]));
       }
-      if (motion.type === 'similar' && isPerfectIntervalSemitoneClass(nextInterval.semitones) && isOuterPair(score, a, b) && Math.abs(aNext.midi - noteA.midi) > 1) {
+      if (motion.type === 'similar' && isPerfectIntervalSemitoneClass(nextInterval.semitones) && isOuterPair(score, a, b) && Math.abs(aNext.midi - noteA.midi) > directPerfectThreshold) {
         out.push(ruleViolation('HAR_DIRECT_8', 'harmony', `Direct perfect consonance in outer voices between ${a.name} and ${b.name}.`, 'Similar motion into a perfect interval is treated conservatively when the upper voice leaps.', [a.id, b.id], tick, [aNext.id, bNext.id]));
       }
-      if (motion.type === 'similar' && nextInterval.intervalClass === 7 && isOuterPair(score, a, b) && Math.abs(aNext.midi - noteA.midi) > 1) {
+      if (motion.type === 'similar' && nextInterval.intervalClass === 7 && isOuterPair(score, a, b) && Math.abs(aNext.midi - noteA.midi) > directPerfectThreshold) {
         out.push(ruleViolation('HAR_DIRECT_5', 'harmony', `Direct perfect fifth in outer voices between ${a.name} and ${b.name}.`, 'Hidden fifths can obscure independence in the outer voices.', [a.id, b.id], tick, [aNext.id, bNext.id]));
       }
       if (nextInterval.intervalClass === 0 && motion.type === 'parallel') {
@@ -298,10 +322,12 @@ function verticalViolations(score: CounterpointScore): RuleViolation[] {
   return out;
 }
 
-function pairwiseMotionViolations(score: CounterpointScore): RuleViolation[] {
+function pairwiseMotionViolations(score: CounterpointScore, settings: CounterpointSettings): RuleViolation[] {
   const out: RuleViolation[] = [];
   const ticks = uniqueTicks(score);
   const motionCounts: Record<'parallel' | 'contrary' | 'similar' | 'oblique' | 'static', number> = { parallel: 0, contrary: 0, similar: 0, oblique: 0, static: 0 };
+  const thirdThreshold = settings.permitMoreThanThreeThirds ? Infinity : settings.heuristicMode === 'harmonizing' ? 6 : 3;
+  const sixthThreshold = settings.permitMoreThanThreeSixths ? Infinity : settings.heuristicMode === 'harmonizing' ? 6 : 3;
   for (let i = 0; i < ticks.length - 1; i += 1) {
     const tick = ticks[i];
     const nextTick = ticks[i + 1];
@@ -319,6 +345,34 @@ function pairwiseMotionViolations(score: CounterpointScore): RuleViolation[] {
         if (motion.type === 'parallel' && isPerfectIntervalSemitoneClass(bNext.midi - aNext.midi)) {
           out.push(ruleViolation('TEX_EXCESSIVE_PARALLEL_MOTION', 'texture', `Parallel motion reinforced by perfect sonority between ${a.name} and ${b.name}.`, 'Excessive parallel motion reduces independence.', [a.id, b.id], tick, [aNow.id, bNow.id, aNext.id, bNext.id]));
         }
+        if (!settings.permitMoreThanThreeThirds || !settings.permitMoreThanThreeSixths) {
+          const interval = intervalInfo(aNext.midi, bNext.midi, settings.fourthAboveBassDissonant);
+          const intervalClass = interval.intervalClass;
+          if (!settings.permitMoreThanThreeThirds && (intervalClass === 3 || intervalClass === 4)) {
+            const prior = ticks.slice(0, i + 2).map((t) => {
+              const aNote = noteActiveAt(a, t);
+              const bNote = noteActiveAt(b, t);
+              return aNote && bNote ? intervalInfo(aNote.midi, bNote.midi, settings.fourthAboveBassDissonant).intervalClass : undefined;
+            });
+            const streak = prior.slice().reverse().findIndex((value) => value !== 3 && value !== 4);
+            const consecutiveThirds = streak === -1 ? prior.filter((value) => value === 3 || value === 4).length : streak;
+            if (consecutiveThirds > thirdThreshold) {
+              out.push(ruleViolation('TEX_TOO_MANY_THIRDS', 'texture', `Too many consecutive thirds between ${a.name} and ${b.name}.`, 'Thirds are fine in moderation but should not dominate the texture.', [a.id, b.id], tick, [aNow.id, bNow.id, aNext.id, bNext.id]));
+            }
+          }
+          if (!settings.permitMoreThanThreeSixths && (intervalClass === 8 || intervalClass === 9)) {
+            const prior = ticks.slice(0, i + 2).map((t) => {
+              const aNote = noteActiveAt(a, t);
+              const bNote = noteActiveAt(b, t);
+              return aNote && bNote ? intervalInfo(aNote.midi, bNote.midi, settings.fourthAboveBassDissonant).intervalClass : undefined;
+            });
+            const streak = prior.slice().reverse().findIndex((value) => value !== 8 && value !== 9);
+            const consecutiveSixths = streak === -1 ? prior.filter((value) => value === 8 || value === 9).length : streak;
+            if (consecutiveSixths > sixthThreshold) {
+              out.push(ruleViolation('TEX_TOO_MANY_SIXTHS', 'texture', `Too many consecutive sixths between ${a.name} and ${b.name}.`, 'Sixths are fine in moderation but should not dominate the texture.', [a.id, b.id], tick, [aNow.id, bNow.id, aNext.id, bNext.id]));
+            }
+          }
+        }
       }
     }
   }
@@ -328,7 +382,7 @@ function pairwiseMotionViolations(score: CounterpointScore): RuleViolation[] {
   return out;
 }
 
-function speciesViolations(score: CounterpointScore): RuleViolation[] {
+function speciesViolations(score: CounterpointScore, settings: CounterpointSettings): RuleViolation[] {
   const out: RuleViolation[] = [];
   const ticks = uniqueTicks(score);
   const cf = score.voices.find((voice) => voice.role === 'cantus');
@@ -337,12 +391,12 @@ function speciesViolations(score: CounterpointScore): RuleViolation[] {
     for (const note of voice.notes) {
       const isStrongBeat = note.startTick % score.ticksPerWhole === 0;
       const active = score.voices.filter((other) => other.id !== voice.id).map((other) => noteActiveAt(other, note.startTick)).filter((n): n is NoteEvent => Boolean(n));
-      const consonant = active.every((otherNote) => classifyIntervalSemitones(otherNote.midi - note.midi, true) !== 'dissonant');
+      const consonant = active.every((otherNote) => classifyIntervalSemitones(otherNote.midi - note.midi, settings.fourthAboveBassDissonant) !== 'dissonant');
       if (voice.species === 'first' && !consonant) {
         out.push(ruleViolation('SP1_DISSONANCE', 'species', `First-species dissonance in ${voice.name}.`, 'First species requires consonance on every structural event.', [voice.id], note.startTick, [note.id]));
       }
       if (voice.species === 'second') {
-        if (isStrongBeat && !consonant) {
+        if (isStrongBeat && !consonant && !settings.allowAccentedPassingDissonance) {
           out.push(ruleViolation('SP2_ACCENTED_DISSONANCE', 'species', `Accented dissonance in ${voice.name}.`, 'Second species normally requires consonance on the strong beat.', [voice.id], note.startTick, [note.id]));
         }
         if (!isStrongBeat && !consonant) {
@@ -360,7 +414,7 @@ function speciesViolations(score: CounterpointScore): RuleViolation[] {
         if (note.tiedFromPrevious && !consonant && !cf) {
           out.push(ruleViolation('SP4_UNPREPARED_SUSPENSION', 'species', `Suspension preparation is unclear in ${voice.name}.`, 'Fourth species requires consonant preparation before the tied dissonance.', [voice.id], note.startTick, [note.id]));
         }
-        if (note.tiedFromPrevious && !consonant) {
+        if (note.tiedFromPrevious && !consonant && settings.strictSuspensionResolution) {
           const next = voice.notes.find((n) => n.startTick === note.startTick + note.durationTicks);
           if (!next || next.midi > note.midi) {
             out.push(ruleViolation('SP4_BAD_RESOLUTION', 'species', `Suspension in ${voice.name} does not resolve downward by step.`, 'Controlled suspensions normally resolve downward by step unless configured otherwise.', [voice.id], note.startTick, [note.id]));
@@ -378,9 +432,10 @@ function speciesViolations(score: CounterpointScore): RuleViolation[] {
   return out;
 }
 
-function cadenceViolations(score: CounterpointScore): RuleViolation[] {
+function cadenceViolations(score: CounterpointScore, settings: CounterpointSettings): RuleViolation[] {
   const cadence = analyzeCadence(score);
-  if (cadence.quality === 'invalid') {
+  const qualityRank = cadence.quality === 'strong' ? 1 : cadence.quality === 'acceptable' ? 0.75 : cadence.quality === 'weak' ? 0.5 : 0;
+  if (qualityRank < settings.cadenceStrictness) {
     return [
       ruleViolation('CAD_FINAL', 'cadence', 'Final sonority is unstable.', cadence.explanation, score.voices.map((voice) => voice.id), cadence.endTick)
     ];
@@ -388,7 +443,7 @@ function cadenceViolations(score: CounterpointScore): RuleViolation[] {
   return [];
 }
 
-function textureViolations(score: CounterpointScore): RuleViolation[] {
+function textureViolations(score: CounterpointScore, settings: CounterpointSettings): RuleViolation[] {
   const out: RuleViolation[] = [];
   const voicePairs = score.voices.flatMap((a, index) => score.voices.slice(index + 1).map((b) => [a, b] as const));
   for (const [a, b] of voicePairs) {
@@ -407,7 +462,7 @@ export const RULES: CounterpointRule[] = [
     name: 'Melodic Range',
     category: 'range',
     applies: () => true,
-    evaluate: (context) => melodicViolations(context.score).filter((v) => v.ruleId === 'MEL_RANGE'),
+    evaluate: (context) => melodicViolations(context.score, defaultCounterpointSettings).filter((v) => v.ruleId === 'MEL_RANGE'),
     metadata: meta('MEL_RANGE', 'Melodic Range', 'A line should remain within its assigned range.', 'Notes outside the configured range are treated as direct violations because they are singability problems rather than merely stylistic issues.', 'all', true, 'range')
   },
   {
@@ -415,7 +470,7 @@ export const RULES: CounterpointRule[] = [
     name: 'Mode / Key',
     category: 'melody',
     applies: () => true,
-    evaluate: (context) => melodicViolations(context.score).filter((v) => v.ruleId === 'MEL_KEY'),
+    evaluate: (context) => melodicViolations(context.score, defaultCounterpointSettings).filter((v) => v.ruleId === 'MEL_KEY'),
     metadata: meta('MEL_KEY', 'Mode / Key', 'Voices should stay within the selected mode.', 'This rule treats accidental pitch classes outside the chosen mode as errors so the cantus firmus and counterpoint remain grounded in the same tonal collection.', 'all', true, 'melody')
   },
   {
@@ -423,7 +478,7 @@ export const RULES: CounterpointRule[] = [
     name: 'Repeated Notes',
     category: 'melody',
     applies: () => true,
-    evaluate: (context) => melodicViolations(context.score).filter((v) => v.ruleId === 'MEL_REPEATED_NOTES'),
+    evaluate: (context) => melodicViolations(context.score, defaultCounterpointSettings).filter((v) => v.ruleId === 'MEL_REPEATED_NOTES'),
     metadata: meta('MEL_REPEATED_NOTES', 'Repeated Notes', 'Repeated notes are discouraged by default.', 'Repeated pitch can flatten melodic direction unless a specific species pattern justifies it.', 'all', true, 'melody')
   },
   {
@@ -431,7 +486,7 @@ export const RULES: CounterpointRule[] = [
     name: 'Large Leap',
     category: 'melody',
     applies: () => true,
-    evaluate: (context) => melodicViolations(context.score).filter((v) => v.ruleId === 'MEL_AUGMENTED_LEAP'),
+    evaluate: (context) => melodicViolations(context.score, defaultCounterpointSettings).filter((v) => v.ruleId === 'MEL_AUGMENTED_LEAP' || v.ruleId === 'MEL_OCTAVE_LEAP' || v.ruleId === 'MEL_LARGE_LEAP'),
     metadata: meta('MEL_AUGMENTED_LEAP', 'Large Leap', 'Large leaps are rare and should be compensated.', 'Species counterpoint prefers predominantly conjunct motion; wide leaps need special justification and recovery.', 'all', true, 'melody')
   },
   {
@@ -439,7 +494,7 @@ export const RULES: CounterpointRule[] = [
     name: 'Melodic Tritone',
     category: 'melody',
     applies: () => true,
-    evaluate: (context) => melodicViolations(context.score).filter((v) => v.ruleId === 'MEL_TRITONE'),
+    evaluate: (context) => melodicViolations(context.score, defaultCounterpointSettings).filter((v) => v.ruleId === 'MEL_TRITONE'),
     metadata: meta('MEL_TRITONE', 'Melodic Tritone', 'Melodic tritones are treated conservatively.', 'The tritone is an especially unstable melodic span in strict species pedagogy.', 'all', true, 'melody')
   },
   {
@@ -447,7 +502,7 @@ export const RULES: CounterpointRule[] = [
     name: 'Leap Recovery',
     category: 'melody',
     applies: () => true,
-    evaluate: (context) => melodicViolations(context.score).filter((v) => v.ruleId === 'MEL_LEAP_RECOVERY'),
+    evaluate: (context) => melodicViolations(context.score, defaultCounterpointSettings).filter((v) => v.ruleId === 'MEL_LEAP_RECOVERY'),
     metadata: meta('MEL_LEAP_RECOVERY', 'Leap Recovery', 'Consecutive leaps in the same direction are discouraged.', 'Strict style usually prefers a compensating stepwise move after a large leap.', 'all', true, 'melody')
   },
   {
@@ -455,7 +510,7 @@ export const RULES: CounterpointRule[] = [
     name: 'Climax Placement',
     category: 'melody',
     applies: () => true,
-    evaluate: (context) => melodicViolations(context.score).filter((v) => v.ruleId === 'MEL_CLIMAX'),
+    evaluate: (context) => melodicViolations(context.score, defaultCounterpointSettings).filter((v) => v.ruleId === 'MEL_CLIMAX'),
     metadata: meta('MEL_CLIMAX', 'Climax Placement', 'A line should generally have one clear climax in a sensible position.', 'The highest pitch should usually emerge as part of an arch-like contour rather than appearing at the opening or after a long stagnant span.', 'all', true, 'melody')
   },
   {
@@ -463,7 +518,7 @@ export const RULES: CounterpointRule[] = [
     name: 'Parallel Fifths',
     category: 'harmony',
     applies: () => true,
-    evaluate: (context) => verticalViolations(context.score).filter((v) => v.ruleId === 'HAR_PARALLEL_5'),
+    evaluate: (context) => verticalViolations(context.score, defaultCounterpointSettings).filter((v) => v.ruleId === 'HAR_PARALLEL_5'),
     metadata: meta('HAR_PARALLEL_5', 'Parallel Fifths', 'Parallel perfect fifths are prohibited in strict species counterpoint.', 'Repeated perfect fifths reduce independence and are one of the central forbidden sonorities in Fux-inspired pedagogy.', 'all', true, 'harmony')
   },
   {
@@ -471,7 +526,7 @@ export const RULES: CounterpointRule[] = [
     name: 'Parallel Octaves',
     category: 'harmony',
     applies: () => true,
-    evaluate: (context) => verticalViolations(context.score).filter((v) => v.ruleId === 'HAR_PARALLEL_8'),
+    evaluate: (context) => verticalViolations(context.score, defaultCounterpointSettings).filter((v) => v.ruleId === 'HAR_PARALLEL_8'),
     metadata: meta('HAR_PARALLEL_8', 'Parallel Octaves', 'Parallel octaves and unisons are prohibited.', 'Octave doubling across motion tends to collapse distinct voices into a single strand.', 'all', true, 'harmony')
   },
   {
@@ -479,7 +534,7 @@ export const RULES: CounterpointRule[] = [
     name: 'Parallel Unisons',
     category: 'harmony',
     applies: () => true,
-    evaluate: (context) => verticalViolations(context.score).filter((v) => v.ruleId === 'HAR_PARALLEL_1'),
+    evaluate: (context) => verticalViolations(context.score, defaultCounterpointSettings).filter((v) => v.ruleId === 'HAR_PARALLEL_1'),
     metadata: meta('HAR_PARALLEL_1', 'Parallel Unisons', 'Parallel unisons are prohibited.', 'Unisons are even more reductive than octaves and are treated especially cautiously.', 'all', true, 'harmony')
   },
   {
@@ -487,7 +542,7 @@ export const RULES: CounterpointRule[] = [
     name: 'Direct Fifths',
     category: 'harmony',
     applies: () => true,
-    evaluate: (context) => verticalViolations(context.score).filter((v) => v.ruleId === 'HAR_DIRECT_5'),
+    evaluate: (context) => verticalViolations(context.score, defaultCounterpointSettings).filter((v) => v.ruleId === 'HAR_DIRECT_5'),
     metadata: meta('HAR_DIRECT_5', 'Direct Fifths', 'Direct perfect fifths are controlled strictly in the outer voices.', 'Similar motion into a perfect fifth can weaken the independence of the upper and lower voices.', 'all', true, 'harmony')
   },
   {
@@ -495,7 +550,7 @@ export const RULES: CounterpointRule[] = [
     name: 'Direct Octaves',
     category: 'harmony',
     applies: () => true,
-    evaluate: (context) => verticalViolations(context.score).filter((v) => v.ruleId === 'HAR_DIRECT_8'),
+    evaluate: (context) => verticalViolations(context.score, defaultCounterpointSettings).filter((v) => v.ruleId === 'HAR_DIRECT_8'),
     metadata: meta('HAR_DIRECT_8', 'Direct Octaves', 'Direct perfect octaves are controlled strictly in the outer voices.', 'Similar motion into an octave is treated as a strong structural independence issue.', 'all', true, 'harmony')
   },
   {
@@ -503,7 +558,7 @@ export const RULES: CounterpointRule[] = [
     name: 'Voice Crossing',
     category: 'harmony',
     applies: () => true,
-    evaluate: (context) => verticalViolations(context.score).filter((v) => v.ruleId === 'HAR_VOICE_CROSSING'),
+    evaluate: (context) => verticalViolations(context.score, defaultCounterpointSettings).filter((v) => v.ruleId === 'HAR_VOICE_CROSSING'),
     metadata: meta('HAR_VOICE_CROSSING', 'Voice Crossing', 'Voice crossing is prohibited by default.', 'Crossing disrupts stable voice order and obscures registral identity.', 'all', true, 'harmony')
   },
   {
@@ -511,7 +566,7 @@ export const RULES: CounterpointRule[] = [
     name: 'Voice Overlap',
     category: 'harmony',
     applies: () => true,
-    evaluate: (context) => verticalViolations(context.score).filter((v) => v.ruleId === 'HAR_VOICE_OVERLAP'),
+    evaluate: (context) => verticalViolations(context.score, defaultCounterpointSettings).filter((v) => v.ruleId === 'HAR_VOICE_OVERLAP'),
     metadata: meta('HAR_VOICE_OVERLAP', 'Voice Overlap', 'Voice overlap is controlled conservatively.', 'Adjacent voices should remain clearly ordered unless a specific exception is enabled.', 'all', true, 'harmony')
   },
   {
@@ -519,7 +574,7 @@ export const RULES: CounterpointRule[] = [
     name: 'First Species Dissonance',
     category: 'species',
     applies: () => true,
-    evaluate: (context) => speciesViolations(context.score).filter((v) => v.ruleId === 'SP1_DISSONANCE'),
+    evaluate: (context) => speciesViolations(context.score, defaultCounterpointSettings).filter((v) => v.ruleId === 'SP1_DISSONANCE'),
     metadata: meta('SP1_DISSONANCE', 'First Species Dissonance', 'First species requires consonance on each structural sonority.', 'In first species, every note forms a directly vertical contrapuntal event; dissonance is therefore not permitted in the default pedagogical system.', [ 'first' ], true, 'species')
   },
   {
@@ -527,7 +582,7 @@ export const RULES: CounterpointRule[] = [
     name: 'Second Species Accented Dissonance',
     category: 'species',
     applies: () => true,
-    evaluate: (context) => speciesViolations(context.score).filter((v) => v.ruleId === 'SP2_ACCENTED_DISSONANCE'),
+    evaluate: (context) => speciesViolations(context.score, defaultCounterpointSettings).filter((v) => v.ruleId === 'SP2_ACCENTED_DISSONANCE'),
     metadata: meta('SP2_ACCENTED_DISSONANCE', 'Second Species Accented Dissonance', 'Strong-beat dissonance is normally prohibited in second species.', 'Accented dissonance is only accepted under special configuration because the strong beat is structurally prominent.', [ 'second' ], true, 'species')
   },
   {
@@ -535,7 +590,7 @@ export const RULES: CounterpointRule[] = [
     name: 'Second Species Bad Passing',
     category: 'species',
     applies: () => true,
-    evaluate: (context) => speciesViolations(context.score).filter((v) => v.ruleId === 'SP2_BAD_PASSING'),
+    evaluate: (context) => speciesViolations(context.score, defaultCounterpointSettings).filter((v) => v.ruleId === 'SP2_BAD_PASSING'),
     metadata: meta('SP2_BAD_PASSING', 'Second Species Passing Dissonance', 'Weak-beat dissonance must function as a passing tone.', 'Second species only permits weak-beat dissonance when it is approached and left by step in a clear directional gesture.', [ 'second' ], true, 'species')
   },
   {
@@ -543,7 +598,7 @@ export const RULES: CounterpointRule[] = [
     name: 'Third Species Dissonance',
     category: 'species',
     applies: () => true,
-    evaluate: (context) => speciesViolations(context.score).filter((v) => v.ruleId === 'SP3_BAD_DISSONANCE'),
+    evaluate: (context) => speciesViolations(context.score, defaultCounterpointSettings).filter((v) => v.ruleId === 'SP3_BAD_DISSONANCE'),
     metadata: meta('SP3_BAD_DISSONANCE', 'Third Species Dissonance', 'Strongly accented third-species dissonance is not allowed by default.', 'Internal dissonance in third species must be created by recognized melodic patterns.', [ 'third' ], true, 'species')
   },
   {
@@ -551,7 +606,7 @@ export const RULES: CounterpointRule[] = [
     name: 'Fourth Species Unprepared Suspension',
     category: 'species',
     applies: () => true,
-    evaluate: (context) => speciesViolations(context.score).filter((v) => v.ruleId === 'SP4_UNPREPARED_SUSPENSION'),
+    evaluate: (context) => speciesViolations(context.score, defaultCounterpointSettings).filter((v) => v.ruleId === 'SP4_UNPREPARED_SUSPENSION'),
     metadata: meta('SP4_UNPREPARED_SUSPENSION', 'Fourth Species Unprepared Suspension', 'Suspensions require consonant preparation.', 'The suspended note must be prepared by a consonance before it creates a tied dissonance.', [ 'fourth' ], true, 'species')
   },
   {
@@ -559,7 +614,7 @@ export const RULES: CounterpointRule[] = [
     name: 'Fourth Species Unresolved Suspension',
     category: 'species',
     applies: () => true,
-    evaluate: (context) => speciesViolations(context.score).filter((v) => v.ruleId === 'SP4_UNRESOLVED_SUSPENSION'),
+    evaluate: (context) => speciesViolations(context.score, defaultCounterpointSettings).filter((v) => v.ruleId === 'SP4_UNRESOLVED_SUSPENSION'),
     metadata: meta('SP4_UNRESOLVED_SUSPENSION', 'Fourth Species Unresolved Suspension', 'A tied note may need clearer resolution labeling.', 'When a tied note remains consonant the passage may be interpreted as syncopation instead of a true suspension.', [ 'fourth' ], true, 'species')
   },
   {
@@ -567,7 +622,7 @@ export const RULES: CounterpointRule[] = [
     name: 'Fourth Species Bad Resolution',
     category: 'species',
     applies: () => true,
-    evaluate: (context) => speciesViolations(context.score).filter((v) => v.ruleId === 'SP4_BAD_RESOLUTION'),
+    evaluate: (context) => speciesViolations(context.score, defaultCounterpointSettings).filter((v) => v.ruleId === 'SP4_BAD_RESOLUTION'),
     metadata: meta('SP4_BAD_RESOLUTION', 'Fourth Species Resolution', 'Suspensions normally resolve downward by step.', 'The classical suspension gesture resolves the dissonance with a controlled downward step unless configuration explicitly relaxes it.', [ 'fourth' ], true, 'species')
   },
   {
@@ -575,7 +630,7 @@ export const RULES: CounterpointRule[] = [
     name: 'Fifth Species Dissonance',
     category: 'species',
     applies: () => true,
-    evaluate: (context) => speciesViolations(context.score).filter((v) => v.ruleId === 'SP5_BAD_DISSONANCE'),
+    evaluate: (context) => speciesViolations(context.score, defaultCounterpointSettings).filter((v) => v.ruleId === 'SP5_BAD_DISSONANCE'),
     metadata: meta('SP5_BAD_DISSONANCE', 'Fifth Species Dissonance', 'Florid species requires controlled dissonance.', 'In fifth species, mixed rhythm must still preserve clear dissonance treatment and rhythmic coherence.', [ 'fifth' ], true, 'species')
   },
   {
@@ -583,7 +638,7 @@ export const RULES: CounterpointRule[] = [
     name: 'Cadence Final',
     category: 'cadence',
     applies: () => true,
-    evaluate: (context) => cadenceViolations(context.score),
+    evaluate: (context) => cadenceViolations(context.score, defaultCounterpointSettings),
     metadata: meta('CAD_FINAL', 'Cadence', 'The ending should settle on a consonant final sonority.', 'Cadence evaluation looks at the final sonority and the approach to it rather than only the final pitch set.', 'all', true, 'cadence')
   },
   {
@@ -591,7 +646,7 @@ export const RULES: CounterpointRule[] = [
     name: 'Duplicated Line',
     category: 'texture',
     applies: () => true,
-    evaluate: (context) => textureViolations(context.score),
+    evaluate: (context) => textureViolations(context.score, defaultCounterpointSettings),
     metadata: meta('TEX_DUPLICATED_LINE', 'Duplicated Line', 'Lines should not simply shadow one another.', 'Overly similar contours or exact duplication weaken multi-voice independence.', 'all', true, 'texture')
   },
   {
@@ -599,14 +654,26 @@ export const RULES: CounterpointRule[] = [
     name: 'Excessive Parallel Motion',
     category: 'texture',
     applies: () => true,
-    evaluate: (context) => pairwiseMotionViolations(context.score),
+    evaluate: (context) => pairwiseMotionViolations(context.score, defaultCounterpointSettings),
     metadata: meta('TEX_EXCESSIVE_PARALLEL_MOTION', 'Excessive Parallel Motion', 'The texture should not lean too heavily on parallel motion.', 'A healthy species texture generally balances parallel motion with contrary and oblique movement.', 'all', true, 'texture')
   }
 ];
 
-export function evaluateScore(score: CounterpointScore, heuristicMode: GenerationStyle = 'strict'): { violations: RuleViolation[]; cadence: ReturnType<typeof analyzeCadence> } {
-  const rawViolations = RULES.flatMap((rule) => rule.evaluate({ score }));
-  const violations = heuristicMode === 'humanLike' ? softenInnerVoiceViolations(score, filterViolationsByStyle(rawViolations, heuristicMode)) : rawViolations;
+export function evaluateScore(
+  score: CounterpointScore,
+  settingsOrHeuristicMode: GenerationStyle | Partial<CounterpointSettings> = 'strict'
+): { violations: RuleViolation[]; cadence: ReturnType<typeof analyzeCadence> } {
+  const settings = resolveCounterpointSettings(settingsOrHeuristicMode);
+  const rawViolations = [
+    ...melodicViolations(score, settings),
+    ...verticalViolations(score, settings),
+    ...pairwiseMotionViolations(score, settings),
+    ...speciesViolations(score, settings),
+    ...cadenceViolations(score, settings),
+    ...textureViolations(score, settings)
+  ];
+  const styleFiltered = filterViolationsByStyle(rawViolations, settings);
+  const violations = settings.heuristicMode === 'strict' ? styleFiltered : softenInnerVoiceViolations(score, styleFiltered);
   return { violations, cadence: analyzeCadence(score) };
 }
 
